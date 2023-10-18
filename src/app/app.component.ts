@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { DatabaseService } from './modules/database/services/database.service';
+import { CoreService } from './modules/core/services/core.service';
 
 @Component({
   selector: 'app-root',
@@ -9,13 +9,7 @@ import { DatabaseService } from './modules/database/services/database.service';
 export class AppComponent {
   title = 'memos 2.0';
 
-  constructor(private db: DatabaseService) {}
+  constructor(private core: CoreService) {}
 
-  ngOnInit() {
-    this.db.initDatabase();
-    // this.db.query('SELECT * FROM OBJECTS');
-    // this.db.queryResults.subscribe((res: any) => {
-    //   console.log(res);
-    // });
-  }
+  ngOnInit() {}
 }

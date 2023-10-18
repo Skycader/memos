@@ -34,32 +34,44 @@ export class DatabaseService {
    */
   public db: any = null;
   public lastQuery: string = '';
+  public lastValues: string[] = [];
+  public resolve: any = null;
   public queryResults: any = new Subject();
-  constructor() {}
+  constructor() {
+    this.initDatabase();
+  }
 
   /**
    *
    */
-  public initDatabase() {
+  private async initDatabase() {
     this.db = window.openDatabase('MEMODB', '2.0', 'MEMOS DATABASE', 0);
-    this.query('CREATE TABLE IF NOT EXISTS MEMOS (ID, TYPE, PROPERTY, VALUE)');
+    await this.query(
+      'CREATE TABLE IF NOT EXISTS MEMOS (ID, TYPE, PROPERTY, VALUE)',
+      []
+    );
   }
 
-  public query(query: string) {
+  protected async query(query: string, values: string[]) {
+    console.log('RUNNING QUERY: ', query, values);
     this.lastQuery = query;
-    this.db.transaction(this.transaction.bind(this));
+    this.lastValues = values;
+    await this.db.transaction(this.transaction.bind(this));
   }
-  public transaction(tx: any) {
-    tx.executeSql(
-      this.lastQuery,
-      [],
-      this.sucessfulQuery.bind(this),
-      this.failedQuery.bind(this)
-    );
+  public async transaction(tx: any) {
+    return new Promise((resolve, reject) => {
+      tx.executeSql(
+        this.lastQuery,
+        this.lastValues,
+        this.sucessfulQuery.bind({ ...this, resolve: resolve }),
+        this.failedQuery.bind({ ...this, reject: reject })
+      );
+    });
   }
 
   public sucessfulQuery(tx: any, results: any) {
     this.queryResults.next(results.rows);
+    this.resolve(results.rows);
   }
 
   public failedQuery(tx: any, results: any) {
@@ -69,5 +81,17 @@ export class DatabaseService {
   /**
    * Add row with an entity id, type, property and value
    */
-  public addRow(id: string, type: string, property: string, value: string) {}
+  public addRow(id: string, type: string, property: string, value: string) {
+    this.query('INSERT INTO MEMOS (ID,TYPE,PROPERTY,VALUE) VALUES (?,?,?,?)', [
+      id,
+      type,
+      property,
+      value,
+    ]);
+  }
+
+  public async dropDatabase() {
+    await this.query('DROP TABLE MEMOS', []);
+    await this.initDatabase();
+  }
 }
