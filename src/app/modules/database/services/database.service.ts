@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
+import { ITX } from '../models/tx.model';
 
 @Injectable({
   providedIn: 'root',
@@ -60,12 +61,12 @@ export class DatabaseService {
    */
   public query(query: string, values: string[]) {
     return new Promise((resolve, reject) => {
-      this.db.transaction(function (tx: any) {
+      this.db.transaction(function (tx: ITX) {
         tx.executeSql(
           query,
           values,
-          (tx: any, results: any) => resolve(results.rows),
-          (tx: any, results: any) => console.warn(query, tx, results, 'ERROR')
+          (tx: ITX, results: any) => resolve(results.rows),
+          (tx: ITX, results: any) => console.warn(query, tx, results, 'ERROR')
         );
       });
     });
