@@ -14,11 +14,17 @@ export class CoreService {
    */
   constructor(private math: MathService, private database: DatabaseService) {}
 
-  public async addCatalog(icon: string, title: string, sides: string[]) {
+  public async addCatalog(
+    icon: string,
+    title: string,
+    sides: string[],
+    path: string
+  ) {
     const id = this.math.makeId(10);
     await this.database.addRow(id, 'CATALOG', 'ICON', icon);
     await this.database.addRow(id, 'CATALOG', 'TITLE', title);
     await this.database.addRow(id, 'CATALOG', 'SIDES', JSON.stringify(sides));
+    await this.database.addRow(id, 'CATALOG', 'PATH', path);
   }
 
   public async dropDatabase() {

@@ -14,10 +14,10 @@ export class DatabaseService {
    * Entity is a JavaScript object kept inside SQL database
    * with many rows notation
    * Here is the implementation by columns:
-   * -- ID: for unification entity, however many rows can share one ID
-   * -- TYPE: for differing entities types, such as a catalog and a card, or todo.
-   * -- PROPERTY: KEY <-> VALUE link, for example repeatDate -> 01.01.2023 12:53 (in unix)
-   * -- VALUE: number or string
+   * -- (ENTITY) ID: for unification entity, however many rows can share one ID
+   * -- (ENTITY) TYPE: for differing entities types, such as a catalog and a card, or todo.
+   * -- (ENTITY) PROPERTY: KEY <-> VALUE link, for example repeatDate -> 01.01.2023 12:53 (in unix)
+   * -- (ENTITY) VALUE: number or string
    *
    * FULL EXAMPLE:
    * ID __ TYPE __ __ PROPERTY __ VALUE
@@ -85,6 +85,10 @@ export class DatabaseService {
       'INSERT INTO MEMOS (ID,TYPE,PROPERTY,VALUE) VALUES (?,?,?,?)',
       [id, type, property, value]
     );
+  }
+
+  public async removeRowById(id: string) {
+    await this.query('DELETE FROM MEMOS WHERE ID = ?', [id]);
   }
 
   public async dropDatabase() {
