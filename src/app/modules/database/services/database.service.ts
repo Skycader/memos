@@ -42,7 +42,7 @@ export class DatabaseService {
   }
 
   /**
-   *
+   * Database initialization sequence
    */
   private async initDatabase() {
     this.db = window.openDatabase('MEMODB', '2.0', 'MEMOS DATABASE', 0);
@@ -52,42 +52,38 @@ export class DatabaseService {
     );
   }
 
-  protected async query(query: string, values: string[]) {
-    console.log('RUNNING QUERY: ', query, values);
-    this.lastQuery = query;
-    this.lastValues = values;
-    await this.db.transaction(this.transaction.bind(this));
-  }
-  public async transaction(tx: any) {
+  /**
+   * SQL query interface
+   * @param query
+   * @param values
+   * @returns
+   */
+  public query(query: string, values: string[]) {
     return new Promise((resolve, reject) => {
-      tx.executeSql(
-        this.lastQuery,
-        this.lastValues,
-        this.sucessfulQuery.bind({ ...this, resolve: resolve }),
-        this.failedQuery.bind({ ...this, reject: reject })
-      );
+      this.db.transaction(function (tx: any) {
+        tx.executeSql(
+          query,
+          values,
+          (tx: any, results: any) => resolve(results.rows),
+          (tx: any, results: any) => console.warn(query, tx, results, 'ERROR')
+        );
+      });
     });
-  }
-
-  public sucessfulQuery(tx: any, results: any) {
-    this.queryResults.next(results.rows);
-    this.resolve(results.rows);
-  }
-
-  public failedQuery(tx: any, results: any) {
-    console.warn('ERROR', tx, results, this.lastQuery);
   }
 
   /**
    * Add row with an entity id, type, property and value
    */
-  public addRow(id: string, type: string, property: string, value: string) {
-    this.query('INSERT INTO MEMOS (ID,TYPE,PROPERTY,VALUE) VALUES (?,?,?,?)', [
-      id,
-      type,
-      property,
-      value,
-    ]);
+  public async addRow(
+    id: string,
+    type: string,
+    property: string,
+    value: string
+  ) {
+    await this.query(
+      'INSERT INTO MEMOS (ID,TYPE,PROPERTY,VALUE) VALUES (?,?,?,?)',
+      [id, type, property, value]
+    );
   }
 
   public async dropDatabase() {
