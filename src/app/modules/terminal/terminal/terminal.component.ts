@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { TerminalService } from '../services/terminal.service';
 
 @Component({
   selector: 'app-terminal',
@@ -6,47 +7,72 @@ import { Component } from '@angular/core';
   styleUrls: ['./terminal.component.scss'],
 })
 export class TerminalComponent {
-  public terminal: string = '$ ';
+  public helpMessage = `
+  Memos Terminal 2.0 by Vodri
+  List of available commands:
+  · mkdir <icon> <title> <sides> - create catalog
+  Example: mkdir 🇫🇷 French Original Translation
+  `;
+  public terminalModel: string = '$ ';
 
-  constructor() {}
+  constructor(private terminal: TerminalService) {}
 
   public type(value: string) {
     this.middleware();
   }
 
   public output(value: string) {
+    console.log('OUTPUTTING: ', value);
     setTimeout(() => {
-      this.terminal = value;
+      this.terminalModel += value;
     });
   }
 
-  public command(command: string) {
-    console.log(command === 'help');
+  public command(command: any): string {
+    console.log('COMMAND: ', command);
     switch (command) {
       case 'help':
-        console.log('GOT HELP');
-        setTimeout(() => {
-          this.output('HELP');
-        });
-        break;
+        return this.helpMessage;
+      case 'clear':
+        this.clearTerminal();
+        return '';
+      case 'pwd':
+        return 'Working tree: ' + this.terminal.pwd();
       default:
-        console.log('default');
+        return '';
     }
   }
 
+  public clearTerminal() {
+    setTimeout(() => {
+      this.terminalModel = '$ ';
+    });
+  }
+
+  public formatTerminal() {
+    this.terminalModel = '$ ';
+  }
+
+  public emitTerminal() {
+    setTimeout(() => {
+      this.terminalModel += this.command(
+        this.terminalModel
+          .split('\n')
+          .at(-2)
+          ?.replaceAll('$', '')
+          .replaceAll(' ', '')
+      );
+
+      this.terminalModel += '\n$ ';
+    });
+  }
+
   public middleware() {
-    if (this.terminal.length < 2) {
-      setTimeout(() => {
-        this.terminal = '$ ';
-      });
-    }
-    if (this.terminal.includes('\n')) {
-      setTimeout(() => {
-        this.command(
-          this.terminal.replace('$ ', '').replaceAll(' ', '').replace('\n', '')
-        );
-        this.terminal = '$ ';
-      });
-    }
+    this.terminalModel.length < 2 ? this.formatTerminal() : '';
+    // this.terminalModel = this.terminalModel
+    //   .split('\n')
+    //   .filter((line: string) => line === '')
+    //   .join('\n');
+    this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
   }
 }
