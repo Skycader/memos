@@ -32,7 +32,7 @@ export class DatabaseService {
 
   constructor(private query: QueryService, public row: RowService) {}
 
-  public async dropDatabase() {
+  public async drop() {
     await this.query.run('DROP TABLE MEMOS', []);
   }
 }

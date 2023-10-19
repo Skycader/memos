@@ -12,7 +12,7 @@ export class CoreService {
    * · Add catalog
    * · Add card
    */
-  constructor(private math: MathService, private database: DatabaseService) {}
+  constructor(private math: MathService, private db: DatabaseService) {}
 
   public async addCatalog(
     icon: string,
@@ -21,13 +21,16 @@ export class CoreService {
     path: string
   ) {
     const id = this.math.makeId(10);
-    await this.database.row.add(id, 'CATALOG', 'ICON', icon);
-    await this.database.row.add(id, 'CATALOG', 'TITLE', title);
-    await this.database.row.add(id, 'CATALOG', 'SIDES', JSON.stringify(sides));
-    await this.database.row.add(id, 'CATALOG', 'PATH', path);
+    await this.db.row.add(id, 'CATALOG', 'ICON', icon);
+    await this.db.row.add(id, 'CATALOG', 'TITLE', title);
+    await this.db.row.add(id, 'CATALOG', 'SIDES', JSON.stringify(sides));
+    await this.db.row.add(id, 'CATALOG', 'PATH', path);
   }
 
-  public async dropDatabase() {
-    await this.database.dropDatabase();
+  /**
+   * Drop database
+   */
+  public async drop() {
+    await this.db.drop();
   }
 }

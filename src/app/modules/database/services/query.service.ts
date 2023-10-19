@@ -32,6 +32,7 @@ export class QueryService {
    * @returns
    */
   public run(query: string, values: string[]) {
+    console.log('RUNNING QUERY: ', query, values);
     return new Promise((resolve, reject) => {
       this.db.transaction(function (tx: ITX) {
         tx.executeSql(
