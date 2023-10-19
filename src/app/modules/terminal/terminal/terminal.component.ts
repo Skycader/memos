@@ -18,7 +18,12 @@ export class TerminalComponent {
   constructor(private terminal: TerminalService) {}
 
   public type(value: string) {
-    this.middleware();
+    let element = document.querySelector('textarea') as any;
+    element.focus();
+    element.setSelectionRange(element.value.length, element.value.length);
+    setTimeout(() => {
+      this.middleware();
+    });
   }
 
   public output(value: string) {
@@ -68,11 +73,14 @@ export class TerminalComponent {
   }
 
   public middleware() {
-    this.terminalModel.length < 2 ? this.formatTerminal() : '';
+    this.terminalModel.length < 3 ? this.formatTerminal() : '';
     // this.terminalModel = this.terminalModel
     //   .split('\n')
     //   .filter((line: string) => line === '')
     //   .join('\n');
+
     this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
+    this.terminalModel.split('\n').at(-1) === '$ ' ? this.emitTerminal() : '';
+    this.terminalModel.split('\n').at(-1) === '$' ? this.emitTerminal() : '';
   }
 }
