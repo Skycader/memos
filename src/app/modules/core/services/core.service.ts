@@ -21,10 +21,10 @@ export class CoreService {
     path: string
   ) {
     const id = this.math.makeId(10);
-    await this.database.addRow(id, 'CATALOG', 'ICON', icon);
-    await this.database.addRow(id, 'CATALOG', 'TITLE', title);
-    await this.database.addRow(id, 'CATALOG', 'SIDES', JSON.stringify(sides));
-    await this.database.addRow(id, 'CATALOG', 'PATH', path);
+    await this.database.row.add(id, 'CATALOG', 'ICON', icon);
+    await this.database.row.add(id, 'CATALOG', 'TITLE', title);
+    await this.database.row.add(id, 'CATALOG', 'SIDES', JSON.stringify(sides));
+    await this.database.row.add(id, 'CATALOG', 'PATH', path);
   }
 
   public async dropDatabase() {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
-import { ITX } from '../models/tx.model';
+import { QueryService } from './query.service';
+import { RowService } from './row.service';
 
 @Injectable({
   providedIn: 'root',
@@ -30,69 +30,9 @@ export class DatabaseService {
    * F44 __ CATALOG __ PATH __ /SCIENCES
    */
 
-  /**
-   * Database reference for all SQL operations
-   */
-  public db: any = null;
-  public lastQuery: string = '';
-  public lastValues: string[] = [];
-  public resolve: any = null;
-  public queryResults: any = new Subject();
-  constructor() {
-    this.initDatabase();
-  }
-
-  /**
-   * Database initialization sequence
-   */
-  private async initDatabase() {
-    this.db = window.openDatabase('MEMODB', '2.0', 'MEMOS DATABASE', 0);
-    await this.query(
-      'CREATE TABLE IF NOT EXISTS MEMOS (ID, TYPE, PROPERTY, VALUE)',
-      []
-    );
-  }
-
-  /**
-   * SQL query interface
-   * @param query
-   * @param values
-   * @returns
-   */
-  public query(query: string, values: string[]) {
-    return new Promise((resolve, reject) => {
-      this.db.transaction(function (tx: ITX) {
-        tx.executeSql(
-          query,
-          values,
-          (tx: ITX, results: any) => resolve(results.rows),
-          (tx: ITX, results: any) => console.warn(query, tx, results, 'ERROR')
-        );
-      });
-    });
-  }
-
-  /**
-   * Add row with an entity id, type, property and value
-   */
-  public async addRow(
-    id: string,
-    type: string,
-    property: string,
-    value: string
-  ) {
-    await this.query(
-      'INSERT INTO MEMOS (ID,TYPE,PROPERTY,VALUE) VALUES (?,?,?,?)',
-      [id, type, property, value]
-    );
-  }
-
-  public async removeRowById(id: string) {
-    await this.query('DELETE FROM MEMOS WHERE ID = ?', [id]);
-  }
+  constructor(private query: QueryService, public row: RowService) {}
 
   public async dropDatabase() {
-    await this.query('DROP TABLE MEMOS', []);
-    await this.initDatabase();
+    await this.query.run('DROP TABLE MEMOS', []);
   }
 }
