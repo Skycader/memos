@@ -13,7 +13,8 @@ export class TerminalComponent {
   · mkdir <icon> <title> <sides> - create catalog
   Example: mkdir 🇫🇷 French Original Translation
   `;
-  public terminalModel: string = '$ ';
+  public terminalModel: string =
+    'Current path: ' + this.terminal.pwd() + '\n$ ';
 
   constructor(private terminal: TerminalService) {}
 
@@ -35,14 +36,20 @@ export class TerminalComponent {
 
   public command(command: any): string {
     console.log('COMMAND: ', command);
-    switch (command) {
+    let cmd = command.split(' ')[0];
+    console.log(cmd);
+    switch (cmd) {
       case 'help':
         return this.helpMessage;
+      case 'cd':
+        console.log('CD TO', command.split(' ')[1]);
+        this.terminal.cd(command.split(' ')[1]);
+        return '';
       case 'clear':
         this.clearTerminal();
         return '';
       case 'pwd':
-        return 'Working tree: ' + this.terminal.pwd();
+        return 'Working dir: ' + this.terminal.pwd();
       default:
         return '';
     }
@@ -50,12 +57,12 @@ export class TerminalComponent {
 
   public clearTerminal() {
     setTimeout(() => {
-      this.terminalModel = '$ ';
+      this.terminalModel = 'Current path: ' + this.terminal.pwd() + '\n$ ';
     });
   }
 
   public formatTerminal() {
-    this.terminalModel = '$ ';
+    this.terminalModel = 'Current path: ' + this.terminal.pwd() + '\n$ ';
   }
 
   public emitTerminal() {
@@ -65,10 +72,11 @@ export class TerminalComponent {
           .split('\n')
           .at(-2)
           ?.replaceAll('$', '')
-          .replaceAll(' ', '')
+          .replace(' ', '')
       );
 
-      this.terminalModel += '\n$ ';
+      this.terminalModel +=
+        '\n' + 'Current path: ' + this.terminal.pwd() + '\n$ ';
     });
   }
 
