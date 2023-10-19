@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
+import { AddService } from './add.service';
+import { FindService } from './find.service';
+import { GetService } from './get.service';
 import { QueryService } from './query.service';
-import { RowService } from './row.service';
+import { RemoveService } from './remove.service';
 
 @Injectable({
   providedIn: 'root',
@@ -30,7 +33,25 @@ export class DatabaseService {
    * F44 __ CATALOG __ PATH __ /SCIENCES
    */
 
-  constructor(private query: QueryService, public row: RowService) {}
+  /**
+   * Manipulating rows with services
+   * @param query
+   * @param add
+   * @param get
+   *
+   * Use call signatures such as:
+   * db.get.rowById(id);
+   * db.add.row(id,type,property,value)
+   * db.remove.rowById(id);
+   */
+
+  constructor(
+    private query: QueryService,
+    public add: AddService,
+    public get: GetService,
+    public remove: RemoveService,
+    public find: FindService
+  ) {}
 
   public async drop() {
     await this.query.run('DROP TABLE MEMOS', []);

@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { RowService } from './row.service';
+import { RemoveService } from './remove.service';
 
-describe('RowService', () => {
-  let service: RowService;
+describe('RemoveService', () => {
+  let service: RemoveService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(RowService);
+    service = TestBed.inject(RemoveService);
   });
 
   it('should be created', () => {
