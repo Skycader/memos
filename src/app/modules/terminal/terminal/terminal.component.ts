@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { CoreService } from '../../core/services/core.service';
 import { TerminalService } from '../services/terminal.service';
 
 @Component({
@@ -16,7 +17,7 @@ export class TerminalComponent {
   public terminalModel: string =
     'Current path: ' + this.terminal.pwd() + '\n$ ';
 
-  constructor(private terminal: TerminalService) {}
+  constructor(private terminal: TerminalService, private core: CoreService) {}
 
   public type(value: string) {
     let element = document.querySelector('textarea') as any;
@@ -41,6 +42,18 @@ export class TerminalComponent {
     switch (cmd) {
       case 'help':
         return this.helpMessage;
+      case 'mkdir':
+        this.core.mkdir(
+          command.split(' ')[1],
+          command.split(' ')[2],
+          command.split(' ')[3],
+          command.split(' ')[4]
+        );
+        return '';
+      case 'uname':
+        return 'memos 2.0 software by vodri';
+      case 'platforminfo':
+        return window.navigator.appVersion;
       case 'cd':
         console.log('CD TO', command.split(' ')[1]);
         this.terminal.cd(command.split(' ')[1]);
