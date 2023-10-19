@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
+import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
   providedIn: 'root',
@@ -38,6 +39,21 @@ export class CoreService {
     );
     await this.db.add.row(id, 'DIR', 'SIDES', JSON.stringify(sides));
     await this.db.add.row(id, 'DIR', 'PATH', (path = '/'));
+  }
+
+  public async touch(
+    content: string[],
+    ownedBy: string,
+    nextRepeat: number,
+    prevRepeat: number,
+    spec: CardSPEC
+  ) {
+    const id = this.math.makeId(10);
+    await this.db.add.row(id, 'CARD', 'CONTENT', JSON.stringify(content));
+    await this.db.add.row(id, 'CARD', 'OWNEDBY', ownedBy);
+    await this.db.add.row(id, 'CARD', 'NEXTREPEAT', nextRepeat.toString());
+    await this.db.add.row(id, 'CARD', 'LASTREPEAT', prevRepeat.toString());
+    await this.db.add.row(id, 'CARD', 'SPEC', JSON.stringify(spec));
   }
 
   /**
