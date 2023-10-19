@@ -6,6 +6,7 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { DatabaseModule } from './modules/database/database.module';
+import { TerminalModule } from './modules/terminal/terminal.module';
 
 @NgModule({
   declarations: [AppComponent],
@@ -13,6 +14,7 @@ import { DatabaseModule } from './modules/database/database.module';
     BrowserModule,
     AppRoutingModule,
     DatabaseModule,
+    TerminalModule,
     BrowserAnimationsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: !isDevMode(),
