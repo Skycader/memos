@@ -101,7 +101,6 @@ export class TerminalComponent {
     //   .join('\n');
 
     this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
-    this.terminalModel.split('\n').at(-1) === '$ ' ? this.emitTerminal() : '';
     this.terminalModel.split('\n').at(-1) === '$' ? this.emitTerminal() : '';
   }
 }
