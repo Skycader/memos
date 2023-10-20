@@ -30,15 +30,10 @@ export class CoreService {
     path: string
   ) {
     const id = this.math.makeId(10);
-    await this.db.add.row(id, 'DIR', 'ICON', (icon = '<ICON NOT SPECIFIED>'));
-    await this.db.add.row(
-      id,
-      'DIR',
-      'TITLE',
-      (title = '<TITLE NOT SPECIFIED>')
-    );
+    await this.db.add.row(id, 'DIR', 'ICON', icon || '<ICON NOT SPECIFIED>');
+    await this.db.add.row(id, 'DIR', 'TITLE', title || '<TITLE NOT SPECIFIED>');
     await this.db.add.row(id, 'DIR', 'SIDES', JSON.stringify(sides));
-    await this.db.add.row(id, 'DIR', 'PATH', (path = '/'));
+    await this.db.add.row(id, 'DIR', 'PATH', path || '/');
   }
 
   public async touch(
@@ -62,11 +57,14 @@ export class CoreService {
    * @returns
    */
   public async lsdir(path: string) {
-    return await this.db.find.row({
+    let gotRow: any = await this.db.get.row({
       type: 'DIR',
       property: 'PATH',
       value: path,
     });
+
+    let rows: any = await this.db.get.rowById(gotRow[0].ID);
+    return rows[1].VALUE;
   }
 
   /**

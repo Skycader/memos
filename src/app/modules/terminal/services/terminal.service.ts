@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { CoreService } from '../../core/services/core.service';
 
 @Injectable({
   providedIn: 'root',
@@ -15,7 +16,7 @@ export class TerminalService {
   private get currentPath() {
     return this.path.replaceAll('//', '/');
   }
-  constructor() {}
+  constructor(private core: CoreService) {}
 
   /**
    * Change Directory
@@ -32,5 +33,9 @@ export class TerminalService {
 
   public pwd() {
     return this.currentPath;
+  }
+
+  public async lsdir(path: string) {
+    return await this.core.lsdir(path);
   }
 }

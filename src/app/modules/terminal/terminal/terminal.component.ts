@@ -28,6 +28,7 @@ export class TerminalComponent {
    */
   public terminalWelcomeMsg: string =
     '╭─axl@memos ' + this.terminal.pwd() + '\n╰─$ ';
+
   constructor(private terminal: TerminalService, private core: CoreService) {}
 
   public ngOnInit() {
@@ -67,9 +68,31 @@ export class TerminalComponent {
   public availableCommands: any = {
     help: () => this.helpMessage,
     cd: (args: any) => this.changeDirectory(args),
+    mkdir: (args: any) => this.mkdir(args),
+    lsdir: (args: any) => this.lsdir(args),
     '': () => '',
   };
 
+  public async lsdir(args: any) {
+    const path = args.at(0);
+    let res: any = await this.terminal.lsdir(path);
+    console.log('RES: ', res);
+    this.terminalModel = this.terminalModel.replace('xxx', res);
+    console.log('RES: ', res);
+    // this.output(res);
+    return 'GETTING ...';
+  }
+
+  /**
+   * Run make directory sequence
+   * @param args of dir icon, title, sides
+   */
+  public mkdir(args: any) {
+    const icon = args.at(0);
+    const title = args.at(1);
+    const sides = args.split(' ').slice(2);
+    this.core.mkdir(icon, title, sides, this.terminal.pwd());
+  }
   /**
    * Change directory
    * @param path
@@ -86,7 +109,9 @@ export class TerminalComponent {
   public runCommand(command: Command): string {
     const cmd = command.at(0);
     const args: any = command.split(' ').slice(1).join(' ');
-    return this.availableCommands[cmd](args) || '';
+    let result = this.availableCommands[cmd](args) || '';
+    if (typeof result === 'object') return 'xxx';
+    return '';
   }
 
   /**
