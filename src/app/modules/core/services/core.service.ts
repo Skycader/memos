@@ -77,8 +77,15 @@ export class CoreService {
       });
       dirs.push(foundRows[0].VALUE);
     }
-    dirs[0] = ' ·' + dirs[0];
-    return dirs.join('\n ·');
+
+    return dirs.map((dir: any) => ` · DIR ${dir}`).join('\n');
+  }
+
+  public async lsdirASC(path: string, page: number) {
+    return await this.db.query.run(
+      `SELECT VALUE FROM MEMOS WHERE ID IN (SELECT ID FROM MEMOS WHERE PROPERTY = "PATH" AND VALUE = ? LIMIT ?,?) AND PROPERTY = "TITLE" ORDER BY VALUE`,
+      [path, (page * 10).toString(), '10']
+    );
   }
 
   /**

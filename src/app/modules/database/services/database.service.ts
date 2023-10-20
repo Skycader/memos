@@ -46,7 +46,7 @@ export class DatabaseService {
    */
 
   constructor(
-    private query: QueryService,
+    public query: QueryService,
     public add: AddService,
     public get: GetService,
     public remove: RemoveService,
