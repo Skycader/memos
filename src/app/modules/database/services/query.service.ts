@@ -23,6 +23,17 @@ export class QueryService {
       'CREATE TABLE IF NOT EXISTS MEMOS (ID, TYPE, PROPERTY, VALUE)',
       []
     );
+    await this.run('CREATE INDEX IF NOT EXISTS ID_INDEX ON MEMOS (ID)', []);
+    await this.run('CREATE INDEX IF NOT EXISTS TYPE_INDEX ON MEMOS (TYPE)', []);
+    await this.run(
+      'CREATE INDEX IF NOT EXISTS PROPERTY_INDEX ON MEMOS (PROPERTY)',
+      []
+    );
+
+    await this.run(
+      'CREATE INDEX IF NOT EXISTS VALUE_INDEX ON MEMOS (VALUE)',
+      []
+    );
   }
 
   /**
