@@ -16,16 +16,20 @@ export class TerminalComponent {
   Example: mkdir 🇫🇷 French Original Translation
   `;
   public terminalModel: string = '';
-
+  public terminalWelcomeMsg: string =
+    '╭─axl@memos ' + this.terminal.pwd() + '\n╰─$ ';
   constructor(private terminal: TerminalService, private core: CoreService) {}
 
   public ngOnInit() {
     this.clearTerminal();
+
+    let element: any = document.querySelector('textarea');
+    element.addEventListener('click', () => {
+      element.focus();
+      element.setSelectionRange(element.value.length, element.value.length);
+    });
   }
   public type(value: string) {
-    let element = document.querySelector('textarea') as any;
-    element.focus();
-    element.setSelectionRange(element.value.length, element.value.length);
     setTimeout(() => {
       this.middleware();
     });
@@ -38,52 +42,35 @@ export class TerminalComponent {
     });
   }
 
-  public command(command: Command): string {
-    console.log('COMMAND: ', command);
-    let cmd = command.at(0);
-    console.log(cmd);
-    switch (cmd) {
-      case 'help':
-        return this.helpMessage;
-      case 'mkdir':
-        this.core.mkdir(
-          command.at(1),
-          command.at(2),
-          [command.at(3)],
-          command.at(4)
-        );
-        return '';
-      case 'uname':
-        return 'memos 2.0 software by vodri';
-      case 'sysinfo':
-        return window.navigator.appVersion;
-      case 'cd':
-        console.log('CD TO', command.at(1));
-        this.terminal.cd(command.at(1));
-        return '';
-      case 'clear':
-        this.clearTerminal();
-        return '';
-      case 'pwd':
-        return 'Working dir: ' + this.terminal.pwd();
-      default:
-        return '';
-    }
+  public availableCommands: any = {
+    help: () => this.helpMessage,
+    cd: (args: any) => this.changeDirectory(args),
+    '': () => '',
+  };
+
+  public changeDirectory(path: string) {
+    this.terminal.cd(path);
+  }
+
+  public runCommand(command: Command): string {
+    const cmd = command.at(0);
+    const args: any = command.split(' ').slice(1).join(' ');
+    return this.availableCommands[cmd](args) || '';
   }
 
   public clearTerminal() {
     setTimeout(() => {
-      this.terminalModel = '╭─root@chrome ' + this.terminal.pwd() + '\n╰─$ ';
+      this.terminalModel = this.terminalWelcomeMsg;
     });
   }
 
   public formatTerminal() {
-    this.terminalModel = 'Current path: ' + this.terminal.pwd() + '\n$ ';
+    this.terminalModel = this.terminalWelcomeMsg;
   }
 
   public emitTerminal() {
     setTimeout(() => {
-      this.terminalModel += this.command(
+      this.terminalModel += this.runCommand(
         this.terminalModel
           .split('\n')
           .at(-2)
@@ -91,18 +78,15 @@ export class TerminalComponent {
           .replace(' ', '') as Command
       );
 
-      this.terminalModel +=
-        '\n' + '╭─root@chrome ' + this.terminal.pwd() + '\n╰─$ ';
+      this.terminalModel += '\n' + this.terminalWelcomeMsg;
     });
   }
 
+  /**
+   * Run between ivoke event and output trigger
+   */
   public middleware() {
     this.terminalModel.length < 3 ? this.formatTerminal() : '';
-    // this.terminalModel = this.terminalModel
-    //   .split('\n')
-    //   .filter((line: string) => line === '')
-    //   .join('\n');
-
     this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
     this.terminalModel.split('\n').at(-1) === '╰─$' ? this.emitTerminal() : '';
   }

@@ -8,5 +8,10 @@ declare global {
       description: string,
       expiresIn: number
     ) => {};
+
+    ng: any;
+    memos: any;
+
+    Promise: any;
   }
 }
