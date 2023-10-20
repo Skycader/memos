@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
+import { Command } from '../models/command.model';
 import { TerminalService } from '../services/terminal.service';
 
 @Component({
@@ -14,11 +15,13 @@ export class TerminalComponent {
   · mkdir <icon> <title> <sides> - create catalog
   Example: mkdir 🇫🇷 French Original Translation
   `;
-  public terminalModel: string =
-    'Current path: ' + this.terminal.pwd() + '\n$ ';
+  public terminalModel: string = '';
 
   constructor(private terminal: TerminalService, private core: CoreService) {}
 
+  public ngOnInit() {
+    this.clearTerminal();
+  }
   public type(value: string) {
     let element = document.querySelector('textarea') as any;
     element.focus();
@@ -35,28 +38,28 @@ export class TerminalComponent {
     });
   }
 
-  public command(command: any): string {
+  public command(command: Command): string {
     console.log('COMMAND: ', command);
-    let cmd = command.split(' ')[0];
+    let cmd = command.at(0);
     console.log(cmd);
     switch (cmd) {
       case 'help':
         return this.helpMessage;
       case 'mkdir':
         this.core.mkdir(
-          command.split(' ')[1],
-          command.split(' ')[2],
-          command.split(' ')[3],
-          command.split(' ')[4]
+          command.at(1),
+          command.at(2),
+          [command.at(3)],
+          command.at(4)
         );
         return '';
       case 'uname':
         return 'memos 2.0 software by vodri';
-      case 'platforminfo':
+      case 'sysinfo':
         return window.navigator.appVersion;
       case 'cd':
-        console.log('CD TO', command.split(' ')[1]);
-        this.terminal.cd(command.split(' ')[1]);
+        console.log('CD TO', command.at(1));
+        this.terminal.cd(command.at(1));
         return '';
       case 'clear':
         this.clearTerminal();
@@ -70,7 +73,7 @@ export class TerminalComponent {
 
   public clearTerminal() {
     setTimeout(() => {
-      this.terminalModel = 'Current path: ' + this.terminal.pwd() + '\n$ ';
+      this.terminalModel = '╭─root@chrome ' + this.terminal.pwd() + '\n╰─$ ';
     });
   }
 
@@ -84,12 +87,12 @@ export class TerminalComponent {
         this.terminalModel
           .split('\n')
           .at(-2)
-          ?.replaceAll('$', '')
-          .replace(' ', '')
+          ?.replaceAll('╰─$', '')
+          .replace(' ', '') as Command
       );
 
       this.terminalModel +=
-        '\n' + 'Current path: ' + this.terminal.pwd() + '\n$ ';
+        '\n' + '╭─root@chrome ' + this.terminal.pwd() + '\n╰─$ ';
     });
   }
 
@@ -101,6 +104,6 @@ export class TerminalComponent {
     //   .join('\n');
 
     this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
-    this.terminalModel.split('\n').at(-1) === '$' ? this.emitTerminal() : '';
+    this.terminalModel.split('\n').at(-1) === '╰─$' ? this.emitTerminal() : '';
   }
 }
