@@ -12,7 +12,9 @@ export class GetService {
     return await this.query.run(`SELECT * FROM MEMOS WHERE ID = ?`, [id]);
   }
 
-  async rowPropertyValueById(id: string, property: string) {
+  async rowPropertyValueById(args: any) {
+    const id = args.id;
+    const property = args.property;
     return await this.query.run(
       `SELECT VALUE FROM MEMOS WHERE ID = ? AND PROPERTY = ?`,
       [id, property]

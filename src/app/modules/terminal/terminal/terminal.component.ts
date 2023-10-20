@@ -159,6 +159,8 @@ export class TerminalComponent {
   public middleware() {
     this.terminalModel.length < 3 ? this.formatTerminal() : '';
     this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
-    this.terminalModel.split('\n').at(-1) === '╰─$' ? this.emitTerminal() : '';
+    this.terminalModel.split('\n').at(-1) === '╰─$'
+      ? (this.terminalModel += ' ')
+      : '';
   }
 }

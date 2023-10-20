@@ -71,13 +71,14 @@ export class CoreService {
 
     console.log('ROWS: ', rows);
     for (let row of rows) {
-      let foundRows: any = await this.db.get.rowPropertyValueById(
-        row.ID,
-        'TITLE'
-      );
+      let foundRows: any = await this.db.get.rowPropertyValueById({
+        id: row.ID,
+        property: 'TITLE',
+      });
       dirs.push(foundRows[0].VALUE);
     }
-    return dirs.join('\n');
+    dirs[0] = ' ·' + dirs[0];
+    return dirs.join('\n ·');
   }
 
   /**
