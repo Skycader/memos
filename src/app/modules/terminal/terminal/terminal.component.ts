@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { Command } from '../models/command.model';
 import { TerminalService } from '../services/terminal.service';
+import { helpMessage } from './messeges';
 
 @Component({
   selector: 'app-terminal',
@@ -9,13 +10,22 @@ import { TerminalService } from '../services/terminal.service';
   styleUrls: ['./terminal.component.scss'],
 })
 export class TerminalComponent {
-  public helpMessage = `
-  Memos Terminal 2.0 by Vodri
-  List of available commands:
-  · mkdir <icon> <title> <sides> - create catalog
-  Example: mkdir 🇫🇷 French Original Translation
-  `;
+  /**
+   * A help message
+   */
+  public helpMessage = helpMessage;
+
+  /**
+   * ngModel that tracks value kept in terminal
+   */
   public terminalModel: string = '';
+
+  /**
+   * A welcoming message
+   * looks like
+   * ╭─axl@memos /
+   * ╰─$
+   */
   public terminalWelcomeMsg: string =
     '╭─axl@memos ' + this.terminal.pwd() + '\n╰─$ ';
   constructor(private terminal: TerminalService, private core: CoreService) {}
@@ -29,12 +39,21 @@ export class TerminalComponent {
       element.setSelectionRange(element.value.length, element.value.length);
     });
   }
+
+  /**
+   * Type on terminal event
+   * @param value
+   */
   public type(value: string) {
     setTimeout(() => {
       this.middleware();
     });
   }
 
+  /**
+   * Output message to terminal
+   * @param value
+   */
   public output(value: string) {
     console.log('OUTPUTTING: ', value);
     setTimeout(() => {
@@ -42,32 +61,53 @@ export class TerminalComponent {
     });
   }
 
+  /**
+   * A tuple of available commands, such as help and cd
+   */
   public availableCommands: any = {
     help: () => this.helpMessage,
     cd: (args: any) => this.changeDirectory(args),
     '': () => '',
   };
 
+  /**
+   * Change directory
+   * @param path
+   */
   public changeDirectory(path: string) {
     this.terminal.cd(path);
   }
 
+  /**
+   * Run terminal commands such as ls, mkdir, etc.
+   * @param command
+   * @returns
+   */
   public runCommand(command: Command): string {
     const cmd = command.at(0);
     const args: any = command.split(' ').slice(1).join(' ');
     return this.availableCommands[cmd](args) || '';
   }
 
+  /**
+   * Clear terminal command
+   */
   public clearTerminal() {
     setTimeout(() => {
       this.terminalModel = this.terminalWelcomeMsg;
     });
   }
 
+  /**
+   * Should run on backspace clearing welcoming message
+   */
   public formatTerminal() {
     this.terminalModel = this.terminalWelcomeMsg;
   }
 
+  /**
+   * Trigger event on Enter press preparing a command for runCommand method
+   */
   public emitTerminal() {
     setTimeout(() => {
       this.terminalModel += this.runCommand(
