@@ -26,8 +26,9 @@ export class TerminalComponent {
    * ╭─axl@memos /
    * ╰─$
    */
-  public terminalWelcomeMsg: string =
-    '╭─axl@memos ' + this.terminal.pwd() + '\n╰─$ ';
+  public get terminalWelcomeMsg(): string {
+    return '╭─axl@memos ' + this.terminal.pwd() + '\n╰─$ ';
+  }
 
   constructor(private terminal: TerminalService, private core: CoreService) {}
 
@@ -71,16 +72,15 @@ export class TerminalComponent {
     mkdir: (args: any) => this.mkdir(args),
     lsdir: (args: any) => this.lsdir(args),
     clear: () => this.clearTerminal(),
+    pwd: () => this.terminal.pwd(),
     '': () => '',
   };
 
   public async lsdir(args: any) {
-    const path = args.at(0);
-    let res: any = await this.terminal.lsdir(path);
-    console.log('RES: ', res);
+    const path = this.terminal.pwd();
+    const page = args.at(0);
+    let res: any = await this.terminal.lsdir(path, page);
     this.terminalModel = this.terminalModel.replace('⠀', res);
-    console.log('RES: ', res);
-    // this.output(res);
     return 'GETTING ...';
   }
 
@@ -99,6 +99,7 @@ export class TerminalComponent {
    * @param path
    */
   public changeDirectory(path: string) {
+    console.log(path);
     this.terminal.cd(path);
   }
 
@@ -113,10 +114,10 @@ export class TerminalComponent {
     let result;
     this.availableCommands[cmd]
       ? (result = this.availableCommands[cmd](args) || '')
-      : '';
+      : (result = 'Command not found');
     if (result === undefined) return '';
     if (typeof result === 'object') return '⠀';
-    return '';
+    return result;
   }
 
   /**

@@ -3,4 +3,6 @@ export interface Row {
   type?: string;
   property?: string;
   value?: string;
+  limit?: number;
+  skip?: number;
 }

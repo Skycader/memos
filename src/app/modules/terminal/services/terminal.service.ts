@@ -12,6 +12,9 @@ export class TerminalService {
   private set currentPath(path: string) {
     this.path = path.replaceAll('//', '/');
     if (this.path === '') this.path = '/';
+    if (this.path.slice(-1) === '/' && this.path.length > 1) {
+      this.path = this.path.slice(0, -1);
+    }
   }
   private get currentPath() {
     return this.path.replaceAll('//', '/');
@@ -35,7 +38,7 @@ export class TerminalService {
     return this.currentPath;
   }
 
-  public async lsdir(path: string) {
-    return await this.core.lsdir(path);
+  public async lsdir(path: string, page: number) {
+    return await this.core.lsdir(path, page);
   }
 }

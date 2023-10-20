@@ -56,15 +56,28 @@ export class CoreService {
    * @param path
    * @returns
    */
-  public async lsdir(path: string) {
-    let gotRow: any = await this.db.get.row({
+  public async lsdir(path: string, page: number) {
+    let rows: any = await this.db.get.rows({
       type: 'DIR',
       property: 'PATH',
       value: path,
+      limit: 10,
+      skip: page * 10,
     });
 
-    let rows: any = await this.db.get.rowById(gotRow[0].ID);
-    return rows[1].VALUE;
+    const dirs = [];
+
+    rows = Array.from(rows);
+
+    console.log('ROWS: ', rows);
+    for (let row of rows) {
+      let foundRows: any = await this.db.get.rowPropertyValueById(
+        row.ID,
+        'TITLE'
+      );
+      dirs.push(foundRows[0].VALUE);
+    }
+    return dirs.join('\n');
   }
 
   /**
