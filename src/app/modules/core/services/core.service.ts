@@ -29,7 +29,12 @@ export class CoreService {
     sides: string[],
     path: string
   ) {
-    const id = this.math.makeId(10);
+    /**
+     * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
+     * and 62^2 for 2 length id (3844 both cards and dirs), and 62^3 makes over 238 000 possible cards,
+     * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
+     */
+    const id = this.math.makeId(4);
     await this.db.add.row(id, 'ICON', icon || '<ICON NOT SPECIFIED>');
     await this.db.add.row(id, 'TYPE', 'DIR');
     await this.db.add.row(id, 'TITLE', title || '<TITLE NOT SPECIFIED>');
@@ -44,7 +49,12 @@ export class CoreService {
     prevRepeat: number,
     spec: CardSPEC
   ) {
-    const id = this.math.makeId(10);
+    /**
+     * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
+     * and 62^2 for 2 length id (3844 both cards and dirs), and 62^3 makes over 238 000 possible cards,
+     * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
+     */
+    const id = this.math.makeId(4);
     await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
     await this.db.add.row(id, 'OWNEDBY', ownedBy);
     await this.db.add.row(id, 'NEXTREPEAT', nextRepeat.toString());
