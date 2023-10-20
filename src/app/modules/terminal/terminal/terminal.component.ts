@@ -70,6 +70,7 @@ export class TerminalComponent {
     cd: (args: any) => this.changeDirectory(args),
     mkdir: (args: any) => this.mkdir(args),
     lsdir: (args: any) => this.lsdir(args),
+    clear: () => this.clearTerminal(),
     '': () => '',
   };
 
@@ -77,7 +78,7 @@ export class TerminalComponent {
     const path = args.at(0);
     let res: any = await this.terminal.lsdir(path);
     console.log('RES: ', res);
-    this.terminalModel = this.terminalModel.replace('xxx', res);
+    this.terminalModel = this.terminalModel.replace('⠀', res);
     console.log('RES: ', res);
     // this.output(res);
     return 'GETTING ...';
@@ -109,8 +110,12 @@ export class TerminalComponent {
   public runCommand(command: Command): string {
     const cmd = command.at(0);
     const args: any = command.split(' ').slice(1).join(' ');
-    let result = this.availableCommands[cmd](args) || '';
-    if (typeof result === 'object') return 'xxx';
+    let result;
+    this.availableCommands[cmd]
+      ? (result = this.availableCommands[cmd](args) || '')
+      : '';
+    if (result === undefined) return '';
+    if (typeof result === 'object') return '⠀';
     return '';
   }
 
