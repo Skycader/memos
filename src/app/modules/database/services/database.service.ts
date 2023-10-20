@@ -34,6 +34,15 @@ export class DatabaseService {
    */
 
   /**
+   * FULL EXAMPLE 2:
+   * ID __ PROPERTY __ VALUE
+   * X21 __ TYPE __ __ CARD
+   * X21 __ CONTENT __ [PI, 3.14]
+   * F44 __ TYPE __ __ DIR
+   * F44 __ TITLE __ __ MATH
+   */
+
+  /**
    * Manipulating rows with services
    * @param query
    * @param add
@@ -55,5 +64,6 @@ export class DatabaseService {
 
   public async drop() {
     await this.query.run('DROP TABLE MEMOS', []);
+    await this.query.initDatabase();
   }
 }

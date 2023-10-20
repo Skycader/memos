@@ -30,10 +30,11 @@ export class CoreService {
     path: string
   ) {
     const id = this.math.makeId(10);
-    await this.db.add.row(id, 'DIR', 'ICON', icon || '<ICON NOT SPECIFIED>');
-    await this.db.add.row(id, 'DIR', 'TITLE', title || '<TITLE NOT SPECIFIED>');
-    await this.db.add.row(id, 'DIR', 'SIDES', JSON.stringify(sides));
-    await this.db.add.row(id, 'DIR', 'PATH', path || '/');
+    await this.db.add.row(id, 'ICON', icon || '<ICON NOT SPECIFIED>');
+    await this.db.add.row(id, 'TYPE', 'DIR');
+    await this.db.add.row(id, 'TITLE', title || '<TITLE NOT SPECIFIED>');
+    await this.db.add.row(id, 'SIDES', JSON.stringify(sides));
+    await this.db.add.row(id, 'PATH', path || '/');
   }
 
   public async touch(
@@ -44,11 +45,11 @@ export class CoreService {
     spec: CardSPEC
   ) {
     const id = this.math.makeId(10);
-    await this.db.add.row(id, 'CARD', 'CONTENT', JSON.stringify(content));
-    await this.db.add.row(id, 'CARD', 'OWNEDBY', ownedBy);
-    await this.db.add.row(id, 'CARD', 'NEXTREPEAT', nextRepeat.toString());
-    await this.db.add.row(id, 'CARD', 'LASTREPEAT', prevRepeat.toString());
-    await this.db.add.row(id, 'CARD', 'SPEC', JSON.stringify(spec));
+    await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
+    await this.db.add.row(id, 'OWNEDBY', ownedBy);
+    await this.db.add.row(id, 'NEXTREPEAT', nextRepeat.toString());
+    await this.db.add.row(id, 'LASTREPEAT', prevRepeat.toString());
+    await this.db.add.row(id, 'SPEC', JSON.stringify(spec));
   }
 
   /**
@@ -58,7 +59,6 @@ export class CoreService {
    */
   public async lsdir(path: string, page: number) {
     let rows: any = await this.db.get.rows({
-      type: 'DIR',
       property: 'PATH',
       value: path,
       limit: 10,
@@ -83,7 +83,7 @@ export class CoreService {
 
   public async lsdirASC(path: string, page: number) {
     return await this.db.query.run(
-      `SELECT VALUE FROM MEMOS WHERE ID IN (SELECT ID FROM MEMOS WHERE PROPERTY = "PATH" AND VALUE = ? LIMIT ?,?) AND PROPERTY = "TITLE" ORDER BY VALUE`,
+      `SELECT VALUE FROM MEMOS WHERE ID IN (SELECT ID FROM MEMOS WHERE PROPERTY = "PATH" AND VALUE = ?) AND PROPERTY = "TITLE" ORDER BY VALUE LIMIT ?,?`,
       [path, (page * 10).toString(), '10']
     );
   }
@@ -95,7 +95,6 @@ export class CoreService {
    */
   public async ls(path: string) {
     return await this.db.find.row({
-      type: 'CARD',
       property: 'PATH',
       value: path,
     });

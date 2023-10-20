@@ -10,10 +10,10 @@ export class AddService {
   /**
    * Add row with an entity id, type, property and value
    */
-  public async row(id: string, type: string, property: string, value: string) {
+  public async row(id: string, property: string, value: string) {
     return await this.query.run(
-      'INSERT INTO MEMOS (ID,TYPE,PROPERTY,VALUE) VALUES (?,?,?,?)',
-      [id, type, property, value]
+      'INSERT INTO MEMOS (ID, PROPERTY,VALUE) VALUES (?,?,?)',
+      [id, property, value]
     );
   }
 }

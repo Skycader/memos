@@ -17,14 +17,13 @@ export class QueryService {
   /**
    * Database initialization sequence
    */
-  private async initDatabase() {
+  public async initDatabase() {
     this.db = window.openDatabase('MEMODB', '2.0', 'MEMOS DATABASE', 0);
     await this.run(
-      'CREATE TABLE IF NOT EXISTS MEMOS (ID, TYPE, PROPERTY, VALUE)',
+      'CREATE TABLE IF NOT EXISTS MEMOS (ID, PROPERTY, VALUE)',
       []
     );
     await this.run('CREATE INDEX IF NOT EXISTS ID_INDEX ON MEMOS (ID)', []);
-    await this.run('CREATE INDEX IF NOT EXISTS TYPE_INDEX ON MEMOS (TYPE)', []);
     await this.run(
       'CREATE INDEX IF NOT EXISTS PROPERTY_INDEX ON MEMOS (PROPERTY)',
       []
