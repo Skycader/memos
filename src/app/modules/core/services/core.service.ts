@@ -92,14 +92,18 @@ export class CoreService {
 
     console.log('ROWS: ', rows);
     for (let row of rows) {
-      let foundRows: any = await this.db.get.rowPropertyValueById({
-        id: row.ID,
-        property: 'PATH:TITLE',
+      let foundRows: any = await this.db.get.rowById(row.ID);
+      console.log('FOUND: ', foundRows);
+      dirs.push({
+        icon: foundRows[0].VALUE,
+        title: foundRows[2].VALUE.split(':')[1],
+        sides: foundRows[3].VALUE,
       });
-      dirs.push(foundRows[0].VALUE.split(':')[1]);
     }
 
-    return dirs.map((dir: any) => ` · DIR ${dir}`).join('\n');
+    return dirs
+      .map((dir: any) => ` · DIR ${dir.icon} ${dir.title} ${dir.sides}`)
+      .join('\n');
   }
 
   /**
