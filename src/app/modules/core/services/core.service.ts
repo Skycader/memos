@@ -39,8 +39,8 @@ export class CoreService {
     await this.db.add.row(id, 'TYPE', 'DIR');
     await this.db.add.row(
       id,
-      'TITLE:PATH',
-      `${title}:${path}` || '<TITLE:PATH NOT SPECIFIED>'
+      'PATH:TITLE',
+      `${path}:${title}` || '<PATH:TITLE NOT SPECIFIED>'
     );
     await this.db.add.row(id, 'SIDES', JSON.stringify(sides));
   }
@@ -80,8 +80,8 @@ export class CoreService {
    */
   public async lsdir(path: string, page: number) {
     let rows: any = await this.db.get.rows({
-      property: 'TITLE:PATH',
-      value: `%:${path}`,
+      property: 'PATH:TITLE',
+      value: `${path}:%`,
       limit: 10,
       skip: page * 10,
     });
@@ -94,19 +94,12 @@ export class CoreService {
     for (let row of rows) {
       let foundRows: any = await this.db.get.rowPropertyValueById({
         id: row.ID,
-        property: 'TITLE:PATH',
+        property: 'PATH:TITLE',
       });
-      dirs.push(foundRows[0].VALUE.split(':')[0]);
+      dirs.push(foundRows[0].VALUE.split(':')[1]);
     }
 
     return dirs.map((dir: any) => ` · DIR ${dir}`).join('\n');
-  }
-
-  public async lsdirASC(path: string, page: number) {
-    return await this.db.query.run(
-      `SELECT VALUE FROM MEMOS WHERE ID IN (SELECT ID FROM MEMOS WHERE PROPERTY = "PATH" AND VALUE = ?) AND PROPERTY = "TITLE" ORDER BY VALUE LIMIT ?,?`,
-      [path, (page * 10).toString(), '10']
-    );
   }
 
   /**
