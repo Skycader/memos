@@ -21,10 +21,6 @@ export class GetService {
     );
   }
 
-  async rowByPath(path: string) {
-    return await this.query.run(`SELECT * FROM MEMOS WHERE PATH = ?`, [path]);
-  }
-
   /**
    * Get row by exact match
    * @param row
@@ -36,7 +32,7 @@ export class GetService {
     row.value = row.value ? `${row.value}` : '%%';
 
     return await this.query.run(
-      'SELECT * FROM MEMOS WHERE ID LIKE ? AND TYPE LIKE ? AND PROPERTY LIKE ? AND VALUE LIKE ? LIMIT 1',
+      'SELECT * FROM MEMOS WHERE ID LIKE ? AND PROPERTY LIKE ? AND VALUE LIKE ? LIMIT 1',
       [row.id, row.property, row.value]
     );
   }

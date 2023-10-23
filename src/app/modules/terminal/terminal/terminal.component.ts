@@ -68,20 +68,39 @@ export class TerminalComponent {
    */
   public availableCommands: any = {
     help: () => this.helpMessage,
-    cd: (args: any) => this.changeDirectory(args),
-    mkdir: (args: any) => this.mkdir(args),
-    lsdir: (args: any) => this.lsdir(args),
+    cd: (args: string) => this.changeDirectory(args),
+    mkdir: (args: string) => this.mkdir(args),
+    lsdir: (args: string) => this.lsdir(args),
+    dir: (args: string) => this.lsdir(args),
+    lsd: (args: string) => this.lsdir(args),
+    drop: (args: string) => this.drop(args),
     clear: () => this.clearTerminal(),
+    rmdir: (args: string) => this.rmdir(args),
     pwd: () => this.terminal.pwd(),
-    '': () => '',
   };
 
-  public async lsdir(args: any) {
+  /**
+   * List directories
+   * @param args
+   */
+  public async lsdir(args: string) {
     const path = this.terminal.pwd();
-    const page = args.at(0);
+    const page: number = Number(args.at(0));
     let res: any = await this.terminal.lsdir(path, page);
     this.terminalModel = this.terminalModel.replace('⠀', res);
-    return 'GETTING ...';
+  }
+
+  public async rmdir(args: string) {
+    const path = this.terminal.pwd();
+    const title = args;
+    this.core.removeDir(path, title);
+  }
+  /**
+   * Erase database
+   * @param args
+   */
+  public async drop(args: string) {
+    this.core.drop();
   }
 
   /**
