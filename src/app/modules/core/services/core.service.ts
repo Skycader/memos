@@ -90,7 +90,6 @@ export class CoreService {
 
     rows = Array.from(rows);
 
-    console.log('ROWS: ', rows);
     for (let row of rows) {
       let foundRows: any = await this.db.get.rowById(row.ID);
       console.log('FOUND: ', foundRows);

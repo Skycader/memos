@@ -77,6 +77,7 @@ export class TerminalComponent {
     clear: () => this.clearTerminal(),
     rmdir: (args: string) => this.rmdir(args),
     pwd: () => this.terminal.pwd(),
+    '': () => '',
   };
 
   /**
