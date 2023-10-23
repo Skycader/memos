@@ -91,6 +91,11 @@ export class TerminalComponent {
     this.terminalModel = this.terminalModel.replace('⠀', res);
   }
 
+  //#TODO: 3. УДАЛАЯ ДИРЕКТОРИЮ -- УДАЛЯТЬ ВСЕ ВНУТРЕННИИ ПАПКИ И ФАЙЛЫ
+  /**
+   * Remove directory
+   * @param args
+   */
   public async rmdir(args: string) {
     const path = this.terminal.pwd();
     const title = args;
@@ -104,6 +109,7 @@ export class TerminalComponent {
     this.core.drop();
   }
 
+  //TODO 2. PATH:TITLE ДОЛЖЕН БЫТЬ ИЗМЕНЕН НА OWNEDBY:TITLE (AX400:ENGLISH)
   /**
    * Run make directory sequence
    * @param args of dir icon, title, sides
@@ -114,6 +120,7 @@ export class TerminalComponent {
     const sides = args.split(' ').slice(2);
     this.core.mkdir(icon, title, sides, this.terminal.pwd());
   }
+  //#TODO: 1. ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ПЕРЕХОД -- ПРОВЕРИТЬ СУЩЕСТВУЕТ ЛИ ТАКОЙ ПУТЬ
   /**
    * Change directory
    * @param path
@@ -124,7 +131,7 @@ export class TerminalComponent {
   }
 
   /**
-   * Run terminal commands such as ls, mkdir, etc.
+   * Run terminal commands that are available in the list
    * @param command
    * @returns
    */
