@@ -3,5 +3,6 @@ export interface Row {
   property?: string;
   value?: string;
   limit?: number;
+  orderBy?: string;
   skip?: number;
 }

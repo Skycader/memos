@@ -41,6 +41,7 @@ export class GetService {
     );
   }
 
+  /** Get rows */
   async rows(row: Row) {
     console.log(row);
     row.id = row.id ? `${row.id}` : '%%';
@@ -50,7 +51,7 @@ export class GetService {
     row.skip = row.skip ? row.skip : 0;
 
     return await this.query.run(
-      'SELECT * FROM MEMOS WHERE ID LIKE ? AND PROPERTY LIKE ? AND VALUE LIKE ? LIMIT ?,?',
+      'SELECT * FROM MEMOS WHERE ID LIKE ? AND PROPERTY LIKE ? AND VALUE LIKE ? ORDER BY VALUE ASC LIMIT ?,?',
       [
         row.id,
         row.property,

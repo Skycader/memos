@@ -37,11 +37,22 @@ export class CoreService {
     const id = this.math.makeId(4);
     await this.db.add.row(id, 'ICON', icon || '<ICON NOT SPECIFIED>');
     await this.db.add.row(id, 'TYPE', 'DIR');
-    await this.db.add.row(id, 'TITLE', title || '<TITLE NOT SPECIFIED>');
+    await this.db.add.row(
+      id,
+      'TITLE:PATH',
+      `${title}:${path}` || '<TITLE:PATH NOT SPECIFIED>'
+    );
     await this.db.add.row(id, 'SIDES', JSON.stringify(sides));
-    await this.db.add.row(id, 'PATH', path || '/');
   }
 
+  /**
+   * Add a card
+   * @param content
+   * @param ownedBy
+   * @param nextRepeat
+   * @param prevRepeat
+   * @param spec
+   */
   public async touch(
     content: string[],
     ownedBy: string,
@@ -69,8 +80,8 @@ export class CoreService {
    */
   public async lsdir(path: string, page: number) {
     let rows: any = await this.db.get.rows({
-      property: 'PATH',
-      value: path,
+      property: 'TITLE:PATH',
+      value: `%:${path}`,
       limit: 10,
       skip: page * 10,
     });
@@ -83,9 +94,9 @@ export class CoreService {
     for (let row of rows) {
       let foundRows: any = await this.db.get.rowPropertyValueById({
         id: row.ID,
-        property: 'TITLE',
+        property: 'TITLE:PATH',
       });
-      dirs.push(foundRows[0].VALUE);
+      dirs.push(foundRows[0].VALUE.split(':')[0]);
     }
 
     return dirs.map((dir: any) => ` · DIR ${dir}`).join('\n');
