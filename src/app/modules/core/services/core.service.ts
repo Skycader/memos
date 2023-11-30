@@ -124,13 +124,8 @@ export class CoreService {
     });
   }
 
-  public async removeDir(path: string, title: string) {
-    let row: any = await this.db.get.row({
-      property: 'PATH:TITLE',
-      value: `${path}:${title}`,
-    });
-    console.log('row:', row);
-    return await this.db.remove.rowById(row[0].ID);
+  public async removeDir(id: string) {
+    return await this.db.remove.rowById(id);
   }
 
   /**

@@ -97,9 +97,7 @@ export class TerminalComponent {
    * @param args
    */
   public async rmdir(args: string) {
-    const path = this.terminal.pwd();
-    const title = args;
-    this.core.removeDir(path, title);
+    this.core.removeDir(args);
   }
   /**
    * Erase database
