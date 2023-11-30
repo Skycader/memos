@@ -13,22 +13,24 @@ export class TerminalService {
   /**
    * Current Directory ID
    */
-  private CDI: string = '/';
+  private path: string[] = ['/'];
 
   constructor(private core: CoreService) {}
 
-  public getCDI() {
-    return this.CDI;
+  public getCDI(): string {
+    let output = this.path.at(-1);
+    if (output) return output;
+    return '/';
   }
   public cd(id: string) {
-    this.CDI = id;
+    id === '..' ? this.path.pop() : this.path.push(id);
   }
   public pwd() {
-    return '/';
+    return this.path.join('/').replace('//', '/');
   }
 
   public async lsdir(current: string, page: number) {
-    let dirs = await this.core.lsdir(this.CDI, page);
+    let dirs = await this.core.lsdir(this.getCDI(), page);
     return dirs
       .map(
         (dir: any) => ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.sides}]`
