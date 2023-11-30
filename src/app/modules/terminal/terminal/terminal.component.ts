@@ -82,7 +82,7 @@ export class TerminalComponent {
 
   /**
    * List directories
-   * @param args
+   * @param args page: number (0,1...)
    */
   public async lsdir(args: string) {
     const path = this.terminal.pwd();
@@ -118,16 +118,15 @@ export class TerminalComponent {
     const icon = args.at(0);
     const title = args.at(1);
     const sides = args.split(' ').slice(2);
-    this.core.mkdir(icon, title, sides, this.terminal.pwd());
+    this.core.mkdir(icon, title, sides, this.terminal.getCDI());
   }
   //#TODO: 1. ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ПЕРЕХОД -- ПРОВЕРИТЬ СУЩЕСТВУЕТ ЛИ ТАКОЙ ПУТЬ
   /**
    * Change directory
    * @param path
    */
-  public changeDirectory(path: string) {
-    console.log(path);
-    // this.terminal.cd(path);
+  public changeDirectory(id: string) {
+    this.terminal.cd(id);
   }
 
   /**

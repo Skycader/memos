@@ -17,7 +17,12 @@ export class TerminalService {
 
   constructor(private core: CoreService) {}
 
-  public cd() {}
+  public getCDI() {
+    return this.CDI;
+  }
+  public cd(id: string) {
+    this.CDI = id;
+  }
   public pwd() {
     return '/';
   }
@@ -25,7 +30,9 @@ export class TerminalService {
   public async lsdir(current: string, page: number) {
     let dirs = await this.core.lsdir(this.CDI, page);
     return dirs
-      .map((dir: any) => ` · DIR ${dir.icon} ${dir.title} [${dir.sides}]`)
+      .map(
+        (dir: any) => ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.sides}]`
+      )
       .join('\n');
   }
 }

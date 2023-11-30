@@ -28,7 +28,7 @@ export class CoreService {
     icon: string,
     title: string,
     sides: string[],
-    path: string
+    owner: string
   ) {
     /**
      * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
@@ -42,7 +42,7 @@ export class CoreService {
     const id = this.math.makeId(4);
     await this.db.add.row(id, 'ICON', icon || '<ICON NOT SPECIFIED>');
     await this.db.add.row(id, 'TYPE', 'DIR');
-    await this.db.add.row(id, 'OWNER:TITLE', `${path}:${title}`);
+    await this.db.add.row(id, 'OWNER:TITLE', `${owner}:${title}`);
     await this.db.add.row(id, 'SIDES', JSON.stringify(sides));
   }
 
@@ -101,6 +101,7 @@ export class CoreService {
       let foundRows: any = await this.db.get.rowById(row.ID);
       console.log('FOUND: ', foundRows);
       dirs.push({
+        id: row.ID,
         icon: foundRows[0].VALUE,
         title: foundRows[2].VALUE.split(':')[1],
         sides: JSON.parse(foundRows[3].VALUE),
