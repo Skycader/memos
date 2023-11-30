@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
+import { Dir } from '../models/dir.model';
 import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
@@ -34,14 +35,14 @@ export class CoreService {
      * and 62^2 for 2 length id (3844 both cards and dirs), and 62^3 makes over 238 000 possible cards,
      * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
      */
+
+    /**
+     * TABLE STRUCTURE
+     */
     const id = this.math.makeId(4);
     await this.db.add.row(id, 'ICON', icon || '<ICON NOT SPECIFIED>');
     await this.db.add.row(id, 'TYPE', 'DIR');
-    await this.db.add.row(
-      id,
-      'PATH:TITLE',
-      `${path}:${title}` || '<PATH:TITLE NOT SPECIFIED>'
-    );
+    await this.db.add.row(id, 'OWNER:TITLE', `${path}:${title}`);
     await this.db.add.row(id, 'SIDES', JSON.stringify(sides));
   }
 
@@ -78,10 +79,10 @@ export class CoreService {
    * @param path
    * @returns
    */
-  public async lsdir(path: string, page: number) {
+  public async lsdir(dirId: string, page: number): Promise<Dir[]> {
     let rows: any = await this.db.get.rows({
-      property: 'PATH:TITLE',
-      value: `${path}:%`,
+      property: 'OWNER:TITLE',
+      value: `${dirId}:%`,
       limit: 10,
       skip: page * 10,
     });
@@ -91,18 +92,23 @@ export class CoreService {
     rows = Array.from(rows);
 
     for (let row of rows) {
+      /**
+       *  0 ICON,
+       *  1 TYPE,
+       *  2 OWNER:TITLE,
+       *  3 SIDES
+       */
       let foundRows: any = await this.db.get.rowById(row.ID);
       console.log('FOUND: ', foundRows);
       dirs.push({
         icon: foundRows[0].VALUE,
         title: foundRows[2].VALUE.split(':')[1],
-        sides: foundRows[3].VALUE,
+        sides: JSON.parse(foundRows[3].VALUE),
+        owner: foundRows[2].VALUE.split(':')[0],
       });
     }
 
-    return dirs
-      .map((dir: any) => ` · DIR ${dir.icon} ${dir.title} ${dir.sides}`)
-      .join('\n');
+    return dirs;
   }
 
   /**

@@ -6,39 +6,26 @@ import { CoreService } from '../../core/services/core.service';
 })
 export class TerminalService {
   /**
-   * Unix like terminal commands
+   * Unix like terminal commands interface API
+   * Callable from components (both terminal.component.ts and any other, such as GUI)
    */
-  private path = '/';
-  private set currentPath(path: string) {
-    this.path = path.replaceAll('//', '/');
-    if (this.path === '') this.path = '/';
-    if (this.path.slice(-1) === '/' && this.path.length > 1) {
-      this.path = this.path.slice(0, -1);
-    }
-  }
-  private get currentPath() {
-    return this.path.replaceAll('//', '/');
-  }
-  constructor(private core: CoreService) {}
 
   /**
-   * Change Directory
+   * Current Directory ID
    */
-  public cd(catalog: string) {
-    if (catalog === '..') {
-      this.currentPath = this.currentPath.split('/').slice(0, -1).join('/');
-      return this.currentPath;
-    }
+  private CDI: string = '/';
 
-    this.currentPath += `/${catalog}`;
-    return this.currentPath;
-  }
+  constructor(private core: CoreService) {}
 
+  public cd() {}
   public pwd() {
-    return this.currentPath;
+    return '/';
   }
 
-  public async lsdir(path: string, page: number) {
-    return await this.core.lsdir(path, page);
+  public async lsdir(current: string, page: number) {
+    let dirs = await this.core.lsdir(this.CDI, page);
+    return dirs
+      .map((dir: any) => ` · DIR ${dir.icon} ${dir.title} [${dir.sides}]`)
+      .join('\n');
   }
 }

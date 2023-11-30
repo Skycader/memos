@@ -13,33 +13,32 @@ export class DatabaseService {
    * Low level API for CRUD Database operations
    * Type: WebSQL
    * Memos has only one flexible table: Memos table
-   * Memos table has entities
+   * Memos 2.0 now has table of entities
    * Entity is a JavaScript object kept inside SQL database
    * with many rows notation
    * Here is the implementation by columns:
    * -- (ENTITY) ID: for unification entity, however many rows can share one ID
-   * -- (ENTITY) TYPE: for differing entities types, such as a catalog and a card, or todo.
-   * -- (ENTITY) PROPERTY: KEY <-> VALUE link, for example repeatDate -> 01.01.2023 12:53 (in unix)
-   * -- (ENTITY) VALUE: number or string
+   * -- (ENTITY) PROPERTY: KEY <-> VALUE link, for example repeatDate, type, content, etc.
+   * -- (ENTITY) VALUE: any time such as number, string or JSON ojbect
    *
-   * FULL EXAMPLE:
-   * ID __ TYPE __ __ PROPERTY __ VALUE
-   * X21 __ CARD __ __ CONTENT __ [PI, 3.14]
-   * X21 __ CARD __ __ REPEATDATE __ 22.03.2001 00:00
-   * X21 __ CARD __ __ LASTREPEAT __ 21.03.2001 01:23
-   * X21 __ CARD __ __ STATUS __ __ __ [SPECIFICATION]
-   * X21 __ CARD __ __ OWNEDBY __ F44
-   * F44 __ CATALOG __ TITLE __ MATH
-   * F44 __ CATALOG __ PATH __ /SCIENCES
+   * DIRECTORY ENTITY:
+   * ID __ PROPERTY __ VALUE
+   * X4 __ TYPE ______ DIR
+   * X4 __ TITLE _____ French
+   * X4 __ ICON ______ 🇫🇷
+   * X4 __ SIDES _____ [Original,Translation]
+   * X4 __ OWNER:TITLE A4:French <== This is made to make sorting possible (by title)
    */
 
   /**
-   * FULL EXAMPLE 2:
+   * CARD ENTITY:
    * ID __ PROPERTY __ VALUE
    * X21 __ TYPE __ __ CARD
    * X21 __ CONTENT __ [PI, 3.14]
-   * F44 __ TYPE __ __ DIR
-   * F44 __ TITLE __ __ MATH
+   * X21 __ OWNER:NEXTREPEAT __ *UNIX TIMESTAM*
+   * X21 __ OWNER:LASTREPEAT __ *UNIX TIMESTAMP*
+   * X21 __ OWNER:INTERVAL __ *HOURS*
+   * X21 __ STATUS ____ *SIDES REPEATED, MAX INTERVAL?, PRIORITY?
    */
 
   /**

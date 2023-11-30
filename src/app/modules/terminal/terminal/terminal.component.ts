@@ -127,7 +127,7 @@ export class TerminalComponent {
    */
   public changeDirectory(path: string) {
     console.log(path);
-    this.terminal.cd(path);
+    // this.terminal.cd(path);
   }
 
   /**
