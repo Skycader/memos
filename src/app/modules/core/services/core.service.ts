@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
 import { Dir } from '../models/dir.model';
-import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
   providedIn: 'root',
@@ -54,24 +53,20 @@ export class CoreService {
    * @param prevRepeat
    * @param spec
    */
-  public async touch(
-    content: string[],
-    ownedBy: string,
-    nextRepeat: number,
-    prevRepeat: number,
-    spec: CardSPEC
-  ) {
+  public async touch(content: string[], owner: string) {
     /**
      * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
      * and 62^2 for 2 length id (3844 both cards and dirs), and 62^3 makes over 238 000 possible cards,
      * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
      */
+
+    const cardSpec: any = [];
     const id = this.math.makeId(4);
     await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
-    await this.db.add.row(id, 'OWNEDBY', ownedBy);
-    await this.db.add.row(id, 'NEXTREPEAT', nextRepeat.toString());
-    await this.db.add.row(id, 'LASTREPEAT', prevRepeat.toString());
-    await this.db.add.row(id, 'SPEC', JSON.stringify(spec));
+    await this.db.add.row(id, 'COWNER', owner);
+    await this.db.add.row(id, 'NEXTREPEAT', Date.now().toString());
+    await this.db.add.row(id, 'LASTREPEAT', Date.now().toString());
+    await this.db.add.row(id, 'SPEC', JSON.stringify(cardSpec));
   }
 
   /**
@@ -117,11 +112,36 @@ export class CoreService {
    * @param path
    * @returns
    */
-  public async ls(path: string) {
-    return await this.db.find.row({
-      property: 'PATH',
-      value: path,
+  public async ls(owner: string, page: number) {
+    let rows: any = await this.db.find.row({
+      property: 'COWNER',
+      value: owner,
     });
+
+    const cards = [];
+
+    rows = Array.from(rows);
+
+    for (let row of rows) {
+      /**
+       *  0 ICON,
+       *  1 TYPE,
+       *  2 OWNER:TITLE,
+       *  3 SIDES
+       */
+      let foundRows: any = await this.db.get.rowById(row.ID);
+      console.log('FOUND: ', foundRows);
+      cards.push({
+        id: row.ID,
+        content: foundRows[0].VALUE,
+        owner: foundRows[1].VALUE,
+        next: foundRows[2].VALUE,
+        prev: foundRows[3].VALUE,
+        spec: foundRows[4].VALUE,
+      });
+    }
+
+    return cards;
   }
 
   public async removeDir(id: string) {

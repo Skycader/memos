@@ -37,4 +37,20 @@ export class TerminalService {
       )
       .join('\n');
   }
+
+  public async ls(page: number) {
+    let cards: any = await this.core.ls(this.getCDI(), page);
+
+    console.log('CARDS: ', cards);
+    return cards
+      .map(
+        (card: any) =>
+          ` · CARD ${card.id} owned by ${card.owner} has sides ${
+            card.content
+          } next: ${card.next} prev: ${card.prev} SPEC: ${JSON.stringify(
+            card.spec
+          )}`
+      )
+      .join('\n');
+  }
 }

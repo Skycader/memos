@@ -65,12 +65,15 @@ export class TerminalComponent {
 
   /**
    * A tuple of available commands, such as help and cd
+   * #TODO: args must be array
    */
   public availableCommands: any = {
     help: () => this.helpMessage,
-    cd: (args: string) => this.changeDirectory(args),
-    mkdir: (args: string) => this.mkdir(args),
+    cd: (args: string[]) => this.changeDirectory(args[0]),
+    mkdir: (args: string[]) => this.mkdir(args),
+    touch: (args: string[]) => this.touch(args),
     lsdir: (args: string) => this.lsdir(args),
+    ls: (args: string[]) => this.ls(args),
     dir: (args: string) => this.lsdir(args),
     lsd: (args: string) => this.lsdir(args),
     drop: (args: string) => this.drop(args),
@@ -80,6 +83,13 @@ export class TerminalComponent {
     '': () => '',
   };
 
+  public async ls(args: string[]) {
+    const CDI = this.terminal.getCDI();
+    let res: any = await this.terminal.ls(0);
+    console.log('RES: ', res);
+    this.terminalModel = this.terminalModel.replace('⠀', res);
+  }
+
   /**
    * List directories
    * @param args page: number (0,1...)
@@ -88,6 +98,7 @@ export class TerminalComponent {
     const path = this.terminal.pwd();
     const page: number = Number(args.at(0));
     let res: any = await this.terminal.lsdir(path, page);
+
     this.terminalModel = this.terminalModel.replace('⠀', res);
   }
 
@@ -107,6 +118,12 @@ export class TerminalComponent {
     this.core.drop();
   }
 
+  public touch(args: string[]) {
+    const content = args.slice(0, -1);
+    const owner = args.at(-1) || '';
+    this.core.touch(content, owner);
+  }
+
   //TODO 2. PATH:TITLE ДОЛЖЕН БЫТЬ ИЗМЕНЕН НА OWNEDBY:TITLE (AX400:ENGLISH)
   /**
    * Run make directory sequence
@@ -115,7 +132,7 @@ export class TerminalComponent {
   public mkdir(args: any) {
     const icon = args.at(0);
     const title = args.at(1);
-    const sides = args.split(' ').slice(2);
+    const sides = args.slice(2);
     this.core.mkdir(icon, title, sides, this.terminal.getCDI());
   }
   //#TODO: 1. ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ПЕРЕХОД -- ПРОВЕРИТЬ СУЩЕСТВУЕТ ЛИ ТАКОЙ ПУТЬ
@@ -134,7 +151,11 @@ export class TerminalComponent {
    */
   public runCommand(command: Command): string {
     const cmd = command.at(0);
-    const args: any = command.split(' ').slice(1).join(' ');
+    /**
+     * ARGS - arguments of the terminal command, for example: mkdir X French (X and French are arguments,
+     * would be [X,French])
+     */
+    const args: any = command.split(' ').slice(1);
     let result;
     this.availableCommands[cmd]
       ? (result = this.availableCommands[cmd](args) || '')
@@ -179,6 +200,7 @@ export class TerminalComponent {
 
   /**
    * Run between ivoke event and output trigger
+   * because: #TODO
    */
   public middleware() {
     this.terminalModel.length < 3 ? this.formatTerminal() : '';
