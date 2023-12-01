@@ -108,8 +108,8 @@ export class CoreService {
   }
 
   /**
-   * List cards by path
-   * @param path
+   * List cards by owner dir
+   * @param owner:string
    * @returns
    */
   public async ls(owner: string, page: number) {
@@ -123,12 +123,6 @@ export class CoreService {
     rows = Array.from(rows);
 
     for (let row of rows) {
-      /**
-       *  0 ICON,
-       *  1 TYPE,
-       *  2 OWNER:TITLE,
-       *  3 SIDES
-       */
       let foundRows: any = await this.db.get.rowById(row.ID);
       console.log('FOUND: ', foundRows);
       cards.push({
