@@ -65,7 +65,6 @@ export class TerminalComponent {
 
   /**
    * A tuple of available commands, such as help and cd
-   * #TODO: args must be array
    */
   public availableCommands: any = {
     help: () => this.helpMessage,
@@ -97,7 +96,7 @@ export class TerminalComponent {
   public async lsdir(args: string) {
     const path = this.terminal.pwd();
     const page: number = Number(args.at(0));
-    let res: any = await this.terminal.lsdir(path, page);
+    let res: any = await this.terminal.lsdir(page);
 
     this.terminalModel = this.terminalModel.replace('⠀', res);
   }
@@ -118,13 +117,17 @@ export class TerminalComponent {
     this.core.drop();
   }
 
+  /**
+   * Create file (card)
+   * @param args
+   * #TODO: switch command API to touch X21 Un chat, A cat
+   */
   public touch(args: string[]) {
     const content = args.slice(0, -1);
     const owner = args.at(-1) || '';
     this.core.touch(content, owner);
   }
 
-  //TODO 2. PATH:TITLE ДОЛЖЕН БЫТЬ ИЗМЕНЕН НА OWNEDBY:TITLE (AX400:ENGLISH)
   /**
    * Run make directory sequence
    * @param args of dir icon, title, sides

@@ -29,7 +29,7 @@ export class TerminalService {
     return this.path.join('/').replace('//', '/');
   }
 
-  public async lsdir(current: string, page: number) {
+  public async lsdir(page: number) {
     let dirs = await this.core.lsdir(this.getCDI(), page);
     return dirs
       .map(
