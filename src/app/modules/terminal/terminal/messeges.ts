@@ -1,3 +1,8 @@
+/**
+ * #TODO:
+ * Сделать туду в несколько глав
+ * по одной на cd, touch и тд
+ */
 export const helpMessage = `
   Memos Terminal 2.0 by Vodri
   List of available commands:
