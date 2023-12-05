@@ -16,10 +16,10 @@ export class TerminalService {
   private path: Dir[] = [];
   private dirsInPWD: Dir[] = [];
   constructor(private core: CoreService) {
-    this.cacheDirsInPwd();
+    this.cacheDirsInWd();
   }
 
-  public async cacheDirsInPwd() {
+  public async cacheDirsInWd() {
     let dirs = await this.core.lsdir(this.getCDI(), 0);
     this.dirsInPWD = dirs;
   }
@@ -31,19 +31,27 @@ export class TerminalService {
   }
 
   public cd(name: string) {
-    // const dirs = await this.core.lsdir(this.getCDI(), 0);
     const dirs: Dir[] = this.dirsInPWD;
+
     const getDirByTitle = (dirs: Dir[], title: string) =>
       dirs.find((dir: Dir) => dir.title === title);
+
     const processId = (dir: Dir | undefined) =>
       dir !== undefined ? dir : null;
+
     const processedDir = processId(getDirByTitle(dirs, name));
     if (name === '..') this.path.pop();
     if (name === '/') this.path = [];
+    if (processedDir !== null) this.path.push(processedDir);
+    /**
+     * Do nothing if required dir to cd does not exist in wd
+     */
     if (processedDir === null) return;
-    name === '..' ? this.path.pop() : this.path.push(processedDir);
 
-    this.cacheDirsInPwd();
+    /**
+     * Cache available dirs in the current path
+     */
+    this.cacheDirsInWd();
   }
 
   public pwd() {
