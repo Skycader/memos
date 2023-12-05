@@ -68,7 +68,7 @@ export class TerminalComponent {
    */
   public availableCommands: any = {
     help: () => this.helpMessage,
-    cd: (args: string[]) => this.cdByName(args[0]),
+    cd: (args: string[]) => this.cd(args[0]),
     mkdir: (args: string[]) => this.mkdir(args),
     touch: (args: string[]) => this.touch(args),
     lsdir: (args: string) => this.lsdir(args),
@@ -83,7 +83,6 @@ export class TerminalComponent {
   };
 
   public async ls(args: string[]) {
-    const CDI = this.terminal.getCDI();
     let res: any = await this.terminal.ls(0);
     console.log('RES: ', res);
     this.terminalModel = this.terminalModel.replace('⠀', res);
@@ -128,10 +127,6 @@ export class TerminalComponent {
     this.core.touch(content, owner);
   }
 
-  public cdByName(name: string) {
-    this.terminal.cdByName(name);
-  }
-
   /**
    * Run make directory sequence
    * @param args of dir icon, title, sides
@@ -147,7 +142,7 @@ export class TerminalComponent {
    * Change directory
    * @param path
    */
-  public changeDirectory(id: string) {
+  public cd(id: string) {
     this.terminal.cd(id);
   }
 

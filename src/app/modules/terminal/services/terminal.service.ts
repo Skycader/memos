@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { Dir } from '../../core/models/dir.model';
 import { CoreService } from '../../core/services/core.service';
 
 @Injectable({
@@ -14,7 +13,7 @@ export class TerminalService {
   /**
    * Current Directory ID
    */
-  private path: any[] = ['/'];
+  private path: Dir[] = [];
   private dirsInPWD: Dir[] = [];
   constructor(private core: CoreService) {
     this.cacheDirsInPwd();
@@ -26,21 +25,22 @@ export class TerminalService {
   }
 
   public getCDI(): string {
-    let output = this.path.at(-1).id;
+    let output = this.path.at(-1)?.id;
     if (output) return output;
     return '/';
   }
-  public cd(id: string) {
-    id === '..' ? this.path.pop() : this.path.push(id);
-  }
-  public cdByName(name: string) {
+
+  public cd(name: string) {
     // const dirs = await this.core.lsdir(this.getCDI(), 0);
     const dirs: Dir[] = this.dirsInPWD;
     const getDirByTitle = (dirs: Dir[], title: string) =>
       dirs.find((dir: Dir) => dir.title === title);
     const processId = (dir: Dir | undefined) =>
-      dir !== undefined ? dir : { id: '/' };
+      dir !== undefined ? dir : null;
     const processedDir = processId(getDirByTitle(dirs, name));
+    if (name === '..') this.path.pop();
+    if (name === '/') this.path = [];
+    if (processedDir === null) return;
     name === '..' ? this.path.pop() : this.path.push(processedDir);
 
     this.cacheDirsInPwd();
@@ -78,5 +78,19 @@ export class TerminalService {
           )}`
       )
       .join('\n');
+  }
+}
+
+class Dir {
+  public id = '/';
+  public title: string = '';
+  constructor(
+    id: string,
+    icon: string,
+    title: string,
+    owner: string,
+    sides: string[]
+  ) {
+    this.id = id;
   }
 }
