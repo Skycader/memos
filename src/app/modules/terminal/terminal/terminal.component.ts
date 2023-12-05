@@ -68,7 +68,7 @@ export class TerminalComponent {
    */
   public availableCommands: any = {
     help: () => this.helpMessage,
-    cd: (args: string[]) => this.changeDirectory(args[0]),
+    cd: (args: string[]) => this.cdByName(args[0]),
     mkdir: (args: string[]) => this.mkdir(args),
     touch: (args: string[]) => this.touch(args),
     lsdir: (args: string) => this.lsdir(args),
@@ -126,6 +126,10 @@ export class TerminalComponent {
     const content = args.slice(0, -1);
     const owner = args.at(-1) || '';
     this.core.touch(content, owner);
+  }
+
+  public cdByName(name: string) {
+    this.terminal.cdByName(name);
   }
 
   /**
