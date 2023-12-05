@@ -14,7 +14,7 @@ export class TerminalService {
   /**
    * Current Directory ID
    */
-  private path: string[] = ['/'];
+  private path: any[] = ['/'];
   private dirsInPWD: Dir[] = [];
   constructor(private core: CoreService) {
     this.cacheDirsInPwd();
@@ -26,7 +26,7 @@ export class TerminalService {
   }
 
   public getCDI(): string {
-    let output = this.path.at(-1);
+    let output = this.path.at(-1).id;
     if (output) return output;
     return '/';
   }
@@ -40,15 +40,18 @@ export class TerminalService {
       dirs.find((dir: Dir) => dir.title === title);
     const processId = (dir: Dir | undefined) =>
       dir !== undefined ? dir : { id: '/' };
-    name === '..'
-      ? this.path.pop()
-      : this.path.push(processId(getDirByTitle(dirs, name)).id);
+    const processedDir = processId(getDirByTitle(dirs, name));
+    name === '..' ? this.path.pop() : this.path.push(processedDir);
 
     this.cacheDirsInPwd();
   }
 
   public pwd() {
-    return this.path.join('/').replace('//', '/');
+    let path = '/';
+    path += this.path.map((dir: any) => dir.title).join('/');
+
+    path = path.replaceAll('//', '/');
+    return path;
   }
 
   public async lsdir(page: number) {
