@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
 import { Dir } from '../models/dir.model';
+import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
   providedIn: 'root',
@@ -60,7 +61,8 @@ export class CoreService {
      * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
      */
 
-    const cardSpec: any = [];
+    const makeArrays = () => content.map((item: string) => []);
+    const cardSpec: CardSPEC = { qfields: [], status: makeArrays() };
     const id = this.math.makeId(4);
     await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
     await this.db.add.row(id, 'COWNER', owner);

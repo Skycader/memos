@@ -122,8 +122,8 @@ export class TerminalComponent {
    * #TODO: switch command API to touch X21 Un chat, A cat
    */
   public touch(args: string[]) {
-    const content = args.slice(0, -1);
-    const owner = args.at(-1) || '';
+    const content = args;
+    const owner = this.terminal.getCDI();
     this.core.touch(content, owner);
   }
 
