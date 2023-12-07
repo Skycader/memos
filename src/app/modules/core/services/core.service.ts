@@ -61,6 +61,16 @@ export class CoreService {
      * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
      */
 
+    /**
+     * Memos philosophy goes like
+     * It is highly unrecommended to
+     * make cards in the root directory
+     * Better put cards in the corresponding
+     * directory
+     * Root is only for folders!
+     */
+    if (owner === '/') return;
+
     const makeArrays = () => content.map((item: string) => []);
     const cardSpec: CardSPEC = { qfields: [], status: makeArrays() };
     const id = this.math.makeId(4);

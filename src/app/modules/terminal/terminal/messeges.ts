@@ -20,6 +20,10 @@ export const helpMessage = `
 
   · rmdir <dir name> - remove directory by name
   ╰─ Example: rmdir French
+
+  · touch <content[]> - create a card
+  ╰─ Example: touch "Un chat" "A cat"
+  ╰─ Example: touch ?"Un chat" "A cat" => Make the first card side question only
   
   · pwd - display current path
   · clear - clear terminal

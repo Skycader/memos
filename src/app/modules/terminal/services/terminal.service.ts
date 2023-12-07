@@ -46,12 +46,12 @@ export class TerminalService {
     /**
      * Do nothing if required dir to cd does not exist in wd
      */
-    if (processedDir === null) return;
 
     /**
      * Cache available dirs in the current path
      */
     this.cacheDirsInWd();
+    if (processedDir === null) return;
   }
 
   public pwd() {
