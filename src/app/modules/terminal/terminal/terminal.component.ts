@@ -13,7 +13,10 @@ export class TerminalComponent {
   /**
    * A help message
    */
-  public helpMessage = helpMessage;
+  public helpMessage = {
+    status: 200,
+    data: helpMessage,
+  };
 
   /**
    * ngModel that tracks value kept in terminal
@@ -164,7 +167,6 @@ export class TerminalComponent {
     this.availableCommands[cmd]
       ? (result = this.availableCommands[cmd](args))
       : (result = { status: 400, info: 'Command not found' });
-    console.log('RESULT', result);
 
     if (result.hasOwnProperty('status') && result.status !== 200)
       return '(!) ' + result.info;
@@ -174,7 +176,7 @@ export class TerminalComponent {
       return '⠀';
 
     if (result.status === 200) return result.data ? result.data : '';
-    return 'Error: fix code bitch';
+    return '(!) There has been unexpected error';
   }
 
   /**
