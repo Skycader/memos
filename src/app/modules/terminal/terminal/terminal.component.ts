@@ -214,6 +214,8 @@ export class TerminalComponent {
 
   /**
    * Run between ivoke event and output trigger
+   * to format the content of terminal in case
+   * of deleting importent content such as pwd
    * because: #TODO
    */
   public middleware() {
