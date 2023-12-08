@@ -167,7 +167,7 @@ export class TerminalComponent {
     console.log('RESULT', result);
 
     if (result.hasOwnProperty('status') && result.status !== 200)
-      return '::' + result.info;
+      return '(!) ' + result.info;
 
     /** Async detected */
     if (typeof result === 'object' && !result.hasOwnProperty('status'))
