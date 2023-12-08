@@ -27,7 +27,7 @@ export class TerminalComponent {
    * ╰─$
    */
   public get terminalWelcomeMsg(): string {
-    return '╭─axl@memos ' + this.terminal.pwd() + '\n╰─$ ';
+    return '╭─axl@memos ' + this.terminal.pwd().data + '\n╰─$ ';
   }
 
   constructor(private terminal: TerminalService, private core: CoreService) {}
@@ -93,14 +93,15 @@ export class TerminalComponent {
    * @param args page: number (0,1...)
    */
   public async lsdir(args: string) {
-    const path = this.terminal.pwd();
     const page: number = Number(args.at(0));
     let res: any = await this.terminal.lsdir(page);
-
-    this.terminalModel = this.terminalModel.replace('⠀', res);
+    console.log('RES: ', res);
+    this.terminalModel = this.terminalModel.replace('⠀', res.data);
+    return { status: 'pending' };
   }
 
-  //#TODO: 3. УДАЛАЯ ДИРЕКТОРИЮ -- УДАЛЯТЬ ВСЕ ВНУТРЕННИИ ПАПКИ И ФАЙЛЫ
+  //#TODO: 3. УДАЛАЯ ДИРЕКТОРИЮ -- УДАЛЯТЬ ВСЕ ВНУТРЕННИИ ФАЙЛЫ
+  // если есть папки - отмена
   /**
    * Remove directory
    * @param args
@@ -143,7 +144,8 @@ export class TerminalComponent {
    * @param path
    */
   public cd(id: string) {
-    this.terminal.cd(id);
+    const status = this.terminal.cd(id);
+    return status;
   }
 
   /**
@@ -160,11 +162,19 @@ export class TerminalComponent {
     const args: any = command.split(' ').slice(1);
     let result;
     this.availableCommands[cmd]
-      ? (result = this.availableCommands[cmd](args) || '')
-      : (result = 'Command not found');
-    if (result === undefined) return '';
-    if (typeof result === 'object') return '⠀';
-    return result;
+      ? (result = this.availableCommands[cmd](args))
+      : (result = { status: 400, info: 'Command not found' });
+    console.log('RESULT', result);
+
+    if (result.hasOwnProperty('status') && result.status !== 200)
+      return '::' + result.info;
+
+    /** Async detected */
+    if (typeof result === 'object' && !result.hasOwnProperty('status'))
+      return '⠀';
+
+    if (result.status === 200) return result.data ? result.data : '';
+    return 'Error: fix code bitch';
   }
 
   /**

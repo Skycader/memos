@@ -40,18 +40,27 @@ export class TerminalService {
       dir !== undefined ? dir : null;
 
     const processedDir = processId(getDirByTitle(dirs, name));
-    if (name === '..') this.path.pop();
-    if (name === '/') this.path = [];
+    if (name === '..') {
+      this.path.pop();
+      return { status: 200 };
+    }
+    if (name === '/') {
+      this.path = [];
+      return { status: 200 };
+    }
     if (processedDir !== null) this.path.push(processedDir);
-    /**
-     * Do nothing if required dir to cd does not exist in wd
-     */
 
     /**
      * Cache available dirs in the current path
      */
     this.cacheDirsInWd();
-    if (processedDir === null) return;
+
+    /**
+     * Do nothing if required dir to cd does not exist in wd
+     */
+    if (processedDir === null)
+      return { status: 404, info: 'Directory does not exist' };
+    return { status: 200 };
   }
 
   public pwd() {
@@ -59,17 +68,23 @@ export class TerminalService {
     path += this.path.map((dir: any) => dir.title).join('/');
 
     path = path.replaceAll('//', '/');
-    return path;
+    return { status: 200, data: path };
   }
 
   public async lsdir(page: number) {
     let dirs = await this.core.lsdir(this.getCDI(), page);
+    console.log('DIRS: ', dirs);
     this.dirsInPWD = dirs;
-    return dirs
+    const output = dirs
       .map(
         (dir: any) => ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.sides}]`
       )
       .join('\n');
+
+    return {
+      status: 200,
+      data: output,
+    };
   }
 
   public async ls(page: number) {
