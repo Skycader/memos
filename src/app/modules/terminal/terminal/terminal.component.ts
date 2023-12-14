@@ -123,12 +123,14 @@ export class TerminalComponent {
   /**
    * Create file (card)
    * @param args
-   * #TODO: switch command API to touch X21 Un chat, A cat
+   * #TODO: switch command API to touch X21 Un chat A cat
    */
   public touch(args: string[]) {
+    console.log('ARGS', args);
     const content = args;
     const owner = this.terminal.getCDI();
     this.core.touch(content, owner);
+    return { status: 200 };
   }
 
   /**
@@ -140,6 +142,7 @@ export class TerminalComponent {
     const title = args.at(1);
     const sides = args.slice(2);
     this.core.mkdir(icon, title, sides, this.terminal.getCDI());
+    return { status: 200 };
   }
   //#TODO: 1. ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ПЕРЕХОД -- ПРОВЕРИТЬ СУЩЕСТВУЕТ ЛИ ТАКОЙ ПУТЬ
   /**
