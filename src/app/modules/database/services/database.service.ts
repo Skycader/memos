@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { AddService } from './add.service';
+import { db } from './db';
 import { FindService } from './find.service';
 import { GetService } from './get.service';
 import { QueryService } from './query.service';
@@ -63,6 +64,6 @@ export class DatabaseService {
 
   public async drop() {
     // await this.query.run('DROP TABLE MEMOS', []);
-    await this.query.initDatabase();
+    return await db.delete();
   }
 }
