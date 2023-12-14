@@ -77,7 +77,8 @@ export class TerminalService {
     this.dirsInPWD = dirs;
     const output = dirs
       .map(
-        (dir: any) => ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.sides}]`
+        (dir: any) =>
+          ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.fields}]`
       )
       .join('\n');
 

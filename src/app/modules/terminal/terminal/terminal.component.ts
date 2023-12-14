@@ -141,7 +141,7 @@ export class TerminalComponent {
     const icon = args.at(0);
     const title = args.at(1);
     const sides = args.slice(2);
-    this.core.mkdir(icon, title, sides, this.terminal.getCDI());
+    this.core.mkdir(this.terminal.getCDI(), icon, title, sides);
     return { status: 200 };
   }
   //#TODO: 1. ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ПЕРЕХОД -- ПРОВЕРИТЬ СУЩЕСТВУЕТ ЛИ ТАКОЙ ПУТЬ

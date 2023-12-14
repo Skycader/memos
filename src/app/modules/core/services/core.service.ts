@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
 import { Dir } from '../models/dir.model';
-import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
   providedIn: 'root',
@@ -25,10 +24,10 @@ export class CoreService {
    * @param path
    */
   public async mkdir(
+    owner: string,
     icon: string,
     title: string,
-    sides: string[],
-    owner: string
+    fields: string[]
   ) {
     /**
      * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
@@ -40,10 +39,7 @@ export class CoreService {
      * TABLE STRUCTURE
      */
     const id = this.math.makeId(4);
-    await this.db.add.row(id, 'ICON', icon || '<ICON NOT SPECIFIED>');
-    await this.db.add.row(id, 'TYPE', 'DIR');
-    await this.db.add.row(id, 'OWNER:TITLE', `${owner}:${title}`);
-    await this.db.add.row(id, 'SIDES', JSON.stringify(sides));
+    return await this.db.add.dir(id, owner, icon, title, fields);
   }
 
   /**
@@ -71,14 +67,14 @@ export class CoreService {
      */
     if (owner === '/') return;
 
-    const makeArrays = () => content.map((item: string) => []);
-    const cardSpec: CardSPEC = { qfields: [], status: makeArrays() };
-    const id = this.math.makeId(4);
-    await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
-    await this.db.add.row(id, 'COWNER', owner);
-    await this.db.add.row(id, 'NEXTREPEAT', Date.now().toString());
-    await this.db.add.row(id, 'LASTREPEAT', Date.now().toString());
-    await this.db.add.row(id, 'SPEC', JSON.stringify(cardSpec));
+    // const makeArrays = () => content.map((item: string) => []);
+    // const cardSpec: CardSPEC = { qfields: [], status: makeArrays() };
+    // const id = this.math.makeId(4);
+    // await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
+    // await this.db.add.row(id, 'COWNER', owner);
+    // await this.db.add.row(id, 'NEXTREPEAT', Date.now().toString());
+    // await this.db.add.row(id, 'LASTREPEAT', Date.now().toString());
+    // await this.db.add.row(id, 'SPEC', JSON.stringify(cardSpec));
   }
 
   /**
@@ -87,32 +83,21 @@ export class CoreService {
    * @returns
    */
   public async lsdir(dirId: string, page: number): Promise<Dir[]> {
-    let rows: any = await this.db.get.rows({
-      property: 'OWNER:TITLE',
-      value: `${dirId}:%`,
-      limit: 10,
-      skip: page * 10,
-    });
+    console.log('DIRID:', dirId);
+    let rows: any = await this.db.get.dirByOwner(dirId);
 
     const dirs = [];
 
     rows = Array.from(rows);
 
     for (let row of rows) {
-      /**
-       *  0 ICON,
-       *  1 TYPE,
-       *  2 OWNER:TITLE,
-       *  3 SIDES
-       */
-      let foundRows: any = await this.db.get.rowById(row.ID);
-      console.log('FOUND: ', foundRows);
+      let foundRows: any = await this.db.get.dirById(row.id);
       dirs.push({
-        id: row.ID,
-        icon: foundRows[0].VALUE,
-        title: foundRows[2].VALUE.split(':')[1],
-        sides: JSON.parse(foundRows[3].VALUE),
-        owner: foundRows[2].VALUE.split(':')[0],
+        id: row.id,
+        owner: row.owner,
+        icon: row.icon,
+        title: row.title,
+        fields: row.fields,
       });
     }
 
@@ -135,7 +120,7 @@ export class CoreService {
     rows = Array.from(rows);
 
     for (let row of rows) {
-      let foundRows: any = await this.db.get.rowById(row.ID);
+      let foundRows: any = await this.db.get.dirById(row.ID);
       console.log('FOUND: ', foundRows);
       cards.push({
         id: row.ID,
@@ -151,7 +136,7 @@ export class CoreService {
   }
 
   public async removeDir(id: string) {
-    return await this.db.remove.rowById(id);
+    return await this.db.remove.dirById(id);
   }
 
   /**

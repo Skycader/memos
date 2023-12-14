@@ -1,7 +1,7 @@
 export interface Dir {
   id: string;
+  owner: string; //owner dir id
   icon: string;
   title: string;
-  owner: string; //owner dir id
-  sides: string[];
+  fields: string[];
 }

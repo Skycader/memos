@@ -62,7 +62,7 @@ export class DatabaseService {
   ) {}
 
   public async drop() {
-    await this.query.run('DROP TABLE MEMOS', []);
+    // await this.query.run('DROP TABLE MEMOS', []);
     await this.query.initDatabase();
   }
 }

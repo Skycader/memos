@@ -13,9 +13,9 @@ export class FindService {
     row.property = row.property ? `%${row.property}%` : '%%';
     row.value = row.value ? `%${row.value}%` : '%%';
 
-    return await this.query.run(
-      'SELECT * FROM MEMOS WHERE ID LIKE ? AND PROPERTY LIKE ? AND VALUE LIKE ?',
-      [row.id, row.property, row.value]
-    );
+    // return await this.query.run(
+    //   'SELECT * FROM MEMOS WHERE ID LIKE ? AND PROPERTY LIKE ? AND VALUE LIKE ?',
+    //   [row.id, row.property, row.value]
+    // );
   }
 }

@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { db } from './db';
 import { QueryService } from './query.service';
 
 @Injectable({
@@ -7,7 +8,11 @@ import { QueryService } from './query.service';
 export class RemoveService {
   constructor(private query: QueryService) {}
 
-  public async rowById(id: string) {
-    return await this.query.run('DELETE FROM MEMOS WHERE ID = ?', [id]);
+  public async dirById(id: string) {
+    return await db.directory
+      .where({
+        id,
+      })
+      .delete();
   }
 }
