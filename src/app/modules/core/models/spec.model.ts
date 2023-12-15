@@ -6,5 +6,9 @@ export interface CardSPEC {
   /**
    * qfields -> question only fields -> means a side won't be needed to type in, but keep a question
    */
-  qfields: number[];
+  qfields?: number[];
+  /**
+   * Max interval
+   */
+  maxInterval?: number;
 }

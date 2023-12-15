@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { CardSPEC } from '../../core/models/spec.model';
 import { db } from './db';
 import { QueryService } from './query.service';
 
@@ -9,7 +10,7 @@ export class AddService {
   constructor(private query: QueryService) {}
 
   /**
-   * Add row with an entity id, type, property and value
+   * Add directory
    */
   public async dir(
     id: string,
@@ -24,6 +25,23 @@ export class AddService {
       icon,
       title,
       fields,
+    });
+  }
+
+  /**
+   * Add card
+   */
+  public async card(
+    id: string,
+    owner: string,
+    contents: string[],
+    spec: CardSPEC
+  ) {
+    return await db.card.add({
+      id,
+      owner,
+      contents,
+      spec,
     });
   }
 }

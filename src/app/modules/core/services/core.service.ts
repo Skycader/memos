@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
 import { Dir } from '../models/dir.model';
+import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
   providedIn: 'root',
@@ -50,7 +51,7 @@ export class CoreService {
    * @param prevRepeat
    * @param spec
    */
-  public async touch(content: string[], owner: string) {
+  public async touch(contents: string[], owner: string) {
     /**
      * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
      * and 62^2 for 2 length id (3844 both cards and dirs), and 62^3 makes over 238 000 possible cards,
@@ -67,14 +68,17 @@ export class CoreService {
      */
     if (owner === '/') return;
 
-    // const makeArrays = () => content.map((item: string) => []);
-    // const cardSpec: CardSPEC = { qfields: [], status: makeArrays() };
-    // const id = this.math.makeId(4);
-    // await this.db.add.row(id, 'CONTENT', JSON.stringify(content));
-    // await this.db.add.row(id, 'COWNER', owner);
-    // await this.db.add.row(id, 'NEXTREPEAT', Date.now().toString());
-    // await this.db.add.row(id, 'LASTREPEAT', Date.now().toString());
-    // await this.db.add.row(id, 'SPEC', JSON.stringify(cardSpec));
+    /**
+     * Creates a status matrix depending on amount of fields in contents
+     * Two inner arrays for a simple card with 2 sides
+     * Three inner arrays for a language card with 3 sides
+     * 4+ if required
+     * @returns
+     */
+    const makeArrays = () => contents.map((item: string) => []);
+    const spec: CardSPEC = { status: makeArrays() };
+    const id = this.math.makeId(4);
+    await this.db.add.card(id, owner, contents, spec);
   }
 
   /**

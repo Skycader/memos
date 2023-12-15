@@ -1,5 +1,6 @@
 // db.ts
 import Dexie, { Table } from 'dexie';
+import { CardSPEC } from '../../core/models/spec.model';
 
 export interface Directory {
   id: string;
@@ -13,7 +14,7 @@ export interface Card {
   id: string;
   owner: string;
   contents: string[];
-  spec: object;
+  spec: CardSPEC;
 }
 
 export class AppDB extends Dexie {
