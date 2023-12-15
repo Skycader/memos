@@ -33,7 +33,10 @@ export class TerminalComponent {
     return '╭─axl@memos ' + this.terminal.pwd().data + '\n╰─$ ';
   }
 
-  constructor(private terminal: TerminalService, private core: CoreService) {}
+  constructor(
+    private terminal: TerminalService,
+    private core: CoreService,
+  ) {}
 
   public ngOnInit() {
     this.clearTerminal();
@@ -82,7 +85,12 @@ export class TerminalComponent {
     clear: () => this.clearTerminal(),
     rmdir: (args: string) => this.rmdir(args),
     pwd: () => this.terminal.pwd(),
-    '': () => '',
+    '': () => {
+      return {
+        status: 200,
+        data: '',
+      };
+    },
   };
 
   public async ls(args: string[]) {
@@ -171,12 +179,10 @@ export class TerminalComponent {
       ? (result = this.availableCommands[cmd](args))
       : (result = { status: 400, info: 'Command not found' });
 
-    if (result.hasOwnProperty('status') && result.status !== 200)
-      return '(!) ' + result.info;
+    if (result.hasOwnProperty('status') && result.status !== 200) return '(!) ' + result.info;
 
     /** Async detected */
-    if (typeof result === 'object' && !result.hasOwnProperty('status'))
-      return '⠀';
+    if (typeof result === 'object' && !result.hasOwnProperty('status')) return '⠀';
 
     if (result.status === 200) return result.data ? result.data : '';
     return '(!) There has been unexpected error';
@@ -204,11 +210,7 @@ export class TerminalComponent {
   public emitTerminal() {
     setTimeout(() => {
       this.terminalModel += this.runCommand(
-        this.terminalModel
-          .split('\n')
-          .at(-2)
-          ?.replaceAll('╰─$', '')
-          .replace(' ', '') as Command
+        this.terminalModel.split('\n').at(-2)?.replaceAll('╰─$', '').replace(' ', '') as Command,
       );
 
       this.terminalModel += '\n' + this.terminalWelcomeMsg;
@@ -224,8 +226,6 @@ export class TerminalComponent {
   public middleware() {
     this.terminalModel.length < 3 ? this.formatTerminal() : '';
     this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
-    this.terminalModel.split('\n').at(-1) === '╰─$'
-      ? (this.terminalModel += ' ')
-      : '';
+    this.terminalModel.split('\n').at(-1) === '╰─$' ? (this.terminalModel += ' ') : '';
   }
 }
