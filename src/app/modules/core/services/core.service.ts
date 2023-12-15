@@ -14,7 +14,10 @@ export class CoreService {
    * · Add directory -> mkdir
    * · Add card -> touch
    */
-  constructor(private math: MathService, private db: DatabaseService) {}
+  constructor(
+    private math: MathService,
+    private db: DatabaseService,
+  ) {}
 
   /**
    * Create a directory in dedicated path
@@ -28,7 +31,7 @@ export class CoreService {
     owner: string,
     icon: string,
     title: string,
-    fields: string[]
+    fields: string[],
   ) {
     /**
      * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
@@ -78,7 +81,7 @@ export class CoreService {
     const makeArrays = () => contents.map((item: string) => []);
     const spec: CardSPEC = { status: makeArrays() };
     const id = this.math.makeId(4);
-    await this.db.add.card(id, owner, contents, spec);
+    await this.db.add.card(id, owner, contents, Date.now(), Date.now(), spec);
   }
 
   /**
@@ -114,28 +117,7 @@ export class CoreService {
    * @returns
    */
   public async ls(owner: string, page: number) {
-    let rows: any = await this.db.find.row({
-      property: 'COWNER',
-      value: owner,
-    });
-
-    const cards = [];
-
-    rows = Array.from(rows);
-
-    for (let row of rows) {
-      let foundRows: any = await this.db.get.dirById(row.ID);
-      console.log('FOUND: ', foundRows);
-      cards.push({
-        id: row.ID,
-        content: foundRows[0].VALUE,
-        owner: foundRows[1].VALUE,
-        next: foundRows[2].VALUE,
-        prev: foundRows[3].VALUE,
-        spec: foundRows[4].VALUE,
-      });
-    }
-
+    const cards = await this.db.get.cardsByOwner(owner, 10, 0);
     return cards;
   }
 

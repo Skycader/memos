@@ -14,6 +14,8 @@ export interface Card {
   id: string;
   owner: string;
   contents: string[];
+  next: number;
+  prev: number;
   spec: CardSPEC;
 }
 

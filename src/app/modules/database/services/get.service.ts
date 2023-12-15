@@ -25,4 +25,14 @@ export class GetService {
       })
       .toArray();
   }
+
+  async cardsByOwner(owner: string, limit: number, offset: number) {
+    return await db.card
+      .where({
+        owner: owner,
+      })
+      .limit(limit)
+      .offset(offset)
+      .toArray();
+  }
 }

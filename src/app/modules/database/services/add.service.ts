@@ -17,7 +17,7 @@ export class AddService {
     owner: string,
     icon: string,
     title: string,
-    fields: string[]
+    fields: string[],
   ) {
     return await db.directory.add({
       id,
@@ -35,12 +35,16 @@ export class AddService {
     id: string,
     owner: string,
     contents: string[],
-    spec: CardSPEC
+    next: number,
+    prev: number,
+    spec: CardSPEC,
   ) {
     return await db.card.add({
       id,
       owner,
       contents,
+      next,
+      prev,
       spec,
     });
   }
