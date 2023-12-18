@@ -8,6 +8,11 @@ import { QueryService } from './query.service';
 export class FindService {
   constructor(private query: QueryService) {}
 
+  /**
+   * Methods required:
+   * @param row
+   */
+
   async row(row: Row) {
     row.id = row.id ? `%${row.id}%` : '%%';
     row.property = row.property ? `%${row.property}%` : '%%';

@@ -33,10 +33,7 @@ export class TerminalComponent {
     return '╭─axl@memos ' + this.terminal.pwd().data + '\n╰─$ ';
   }
 
-  constructor(
-    private terminal: TerminalService,
-    private core: CoreService,
-  ) {}
+  constructor(private terminal: TerminalService, private core: CoreService) {}
 
   public ngOnInit() {
     this.clearTerminal();
@@ -131,7 +128,7 @@ export class TerminalComponent {
   /**
    * Create file (card)
    * @param args
-   * #TODO: switch command API to touch X21 Un chat A cat
+   * #TODO: сделай так, чтобы из терминала можно было создавать карточки с пробелами
    */
   public touch(args: string[]) {
     console.log('ARGS', args);
@@ -152,9 +149,9 @@ export class TerminalComponent {
     this.core.mkdir(this.terminal.getCDI(), icon, title, sides);
     return { status: 200 };
   }
-  //#TODO: 1. ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ПЕРЕХОД -- ПРОВЕРИТЬ СУЩЕСТВУЕТ ЛИ ТАКОЙ ПУТЬ
   /**
    * Change directory
+   * Check if dir exists: ✅
    * @param path
    */
   public cd(id: string) {
