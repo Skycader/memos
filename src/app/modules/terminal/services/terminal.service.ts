@@ -43,6 +43,7 @@ export class TerminalService {
     const processedDir = processId(getDirByTitle(dirs, name));
     if (name === '..') {
       this.path.pop();
+      this.cacheDirsInWd();
       return { status: 200 };
     }
     if (name === '/') {
@@ -79,7 +80,7 @@ export class TerminalService {
     const output = dirs
       .map(
         (dir: any) =>
-          ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.fields}]`
+          ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.fields}]`,
       )
       .join('\n');
 
@@ -98,7 +99,7 @@ export class TerminalService {
             card.owner
           } has sides [${card.contents.join()}] next: ${card.next} prev: ${
             card.prev
-          } SPEC: ${JSON.stringify(card.spec)}`
+          } SPEC: ${JSON.stringify(card.spec)}`,
       )
       .join('\n');
   }
@@ -112,7 +113,7 @@ class Dir {
     icon: string,
     title: string,
     owner: string,
-    sides: string[]
+    sides: string[],
   ) {
     this.id = id;
   }
