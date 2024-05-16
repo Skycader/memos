@@ -1,6 +1,7 @@
 {
   "name": "memos",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "lastUpdate": "16.may.2024",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port=3500",
