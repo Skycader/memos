@@ -35,7 +35,10 @@ export class TerminalComponent {
 
   @ViewChild('terminalRef') terminalRef!: ElementRef;
 
-  constructor(private terminal: TerminalService, private core: CoreService) {}
+  constructor(
+    private terminal: TerminalService,
+    private core: CoreService,
+  ) { }
 
   public ngAfterViewInit() {
     this.clearTerminal();
@@ -45,7 +48,7 @@ export class TerminalComponent {
       element.nativeElement.focus();
       element.nativeElement.setSelectionRange(
         element.nativeElement.value.length,
-        element.nativeElement.value.length
+        element.nativeElement.value.length,
       );
     });
   }
@@ -152,6 +155,8 @@ export class TerminalComponent {
     const title = args.at(1);
     const sides = args.slice(2);
     this.core.mkdir(this.terminal.getCDI(), icon, title, sides);
+    this.terminal.cacheDirsInWd();
+
     return { status: 200 };
   }
   /**
@@ -220,7 +225,7 @@ export class TerminalComponent {
           .split('\n')
           .at(-2)
           ?.replaceAll('╰─$', '')
-          .replace(' ', '') as Command
+          .replace(' ', '') as Command,
       );
 
       this.terminalModel += '\n' + this.terminalWelcomeMsg;
