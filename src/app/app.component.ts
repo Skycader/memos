@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CoreService } from './modules/core/services/core.service';
 import { TerminalService } from './modules/terminal/services/terminal.service';
+import { debug } from '../extensions/debug';
 
 @Component({
   selector: 'app-root',
@@ -10,7 +11,12 @@ import { TerminalService } from './modules/terminal/services/terminal.service';
 export class AppComponent {
   title = 'memos 2.0';
 
-  constructor(private core: CoreService, private terminal: TerminalService) {}
+  constructor(
+    private core: CoreService,
+    private terminal: TerminalService,
+  ) { }
 
-  ngOnInit() {}
+  ngOnInit() {
+    debug();
+  }
 }

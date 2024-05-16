@@ -26,8 +26,8 @@ export class AppDB extends Dexie {
   constructor() {
     super('memos');
     this.version(1).stores({
-      directory: 'id, owner, icon, title,fields',
-      card: 'id, owner, contents',
+      directory: 'id, owner, title',
+      card: 'id, owner, next, prev',
     });
   }
 }

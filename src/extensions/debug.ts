@@ -7,7 +7,7 @@ export function debug() {
   /**
    * Enhance Promise with additional log information
    */
-  window.Promise.prototype.log = function (res: any) {
+  window.Promise.prototype.log = function(res: any) {
     return this.then((res: any) => console.log(res));
   };
 

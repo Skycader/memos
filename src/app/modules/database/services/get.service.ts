@@ -6,10 +6,9 @@ import { QueryService } from './query.service';
   providedIn: 'root',
 })
 export class GetService {
-  constructor(private query: QueryService) {}
+  constructor(private query: QueryService) { }
 
   async dirByOwner(owner: string) {
-    console.log('ownerID:', owner, typeof owner, owner.length);
     return await db.directory
       .where({
         owner: owner,
@@ -18,12 +17,15 @@ export class GetService {
   }
 
   async dirById(id: string) {
-    console.log('DEBUG: ', 'GETTING DIR BY ID', id);
     return await db.directory
       .where({
         id,
       })
       .toArray();
+  }
+
+  async cardsToRepeat() {
+    return await db.card.where('next').below(Date.now()).toArray();
   }
 
   async cardsByOwner(owner: string, limit: number, offset: number) {
