@@ -3,7 +3,6 @@ import { AddService } from './add.service';
 import { db } from './db';
 import { FindService } from './find.service';
 import { GetService } from './get.service';
-import { QueryService } from './query.service';
 import { RemoveService } from './remove.service';
 
 @Injectable({
@@ -55,7 +54,6 @@ export class DatabaseService {
    */
 
   constructor(
-    public query: QueryService,
     public add: AddService,
     public get: GetService,
     public remove: RemoveService,

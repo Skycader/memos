@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
 import { CardSPEC } from '../../core/models/spec.model';
 import { db } from './db';
-import { QueryService } from './query.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AddService {
-  constructor(private query: QueryService) {}
+  constructor() {}
 
   /**
    * Add directory

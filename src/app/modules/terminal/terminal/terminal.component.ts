@@ -90,6 +90,7 @@ export class TerminalComponent {
     clear: () => this.clearTerminal(),
     rmdir: (args: string) => this.rmdir(args),
     pwd: () => this.terminal.pwd(),
+    find: (args: string) => this.findCardByContent(args),
     '': () => {
       return {
         status: 200,
@@ -99,9 +100,14 @@ export class TerminalComponent {
   };
 
   public async ls(args: string[]) {
-    let res: any = await this.terminal.ls(0);
-    console.log('RES: ', res);
-    this.terminalModel = this.terminalModel.replace('⠀', res);
+    const result = await this.terminal.ls(0);
+    this.printToTerminal(result)
+    
+  }
+
+  public async findCardByContent(content: string) {
+    const result = await this.terminal.finCardByContent(content);
+   this.printToTerminal(result)
   }
 
   /**
@@ -111,7 +117,6 @@ export class TerminalComponent {
   public async lsdir(args: string) {
     const page: number = Number(args.at(0));
     let res: any = await this.terminal.lsdir(page);
-    console.log('RES: ', res);
     this.terminalModel = this.terminalModel.replace('⠀', res.data);
     return { status: 'pending' };
   }
@@ -139,7 +144,6 @@ export class TerminalComponent {
    * #TODO: сделай так, чтобы из терминала можно было создавать карточки с пробелами
    */
   public touch(args: string[]) {
-    console.log('ARGS', args);
     const content = args;
     const owner = this.terminal.getCDI();
     this.core.touch(content, owner);
@@ -169,6 +173,11 @@ export class TerminalComponent {
     return status;
   }
 
+  public printToTerminal(info: string) {
+    console.log(`printing ${info}`)
+    this.terminalModel = this.terminalModel.replace('⠀', info);
+  }
+
   /**
    * Run terminal commands that are available in the list
    * @param command
@@ -182,8 +191,6 @@ export class TerminalComponent {
      */
     const args: any = command.split(' ').slice(1);
     let result;
-
-    console.log(cmd, args);
     this.availableCommands[cmd]
       ? (result = this.availableCommands[cmd](args))
       : (result = { status: 400, info: 'Command not found' });

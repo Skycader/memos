@@ -89,7 +89,7 @@ export class TerminalService {
     };
   }
 
-  public async ls(page: number) {
+  public async ls(page: number): Promise<string> {
     let cards: any = await this.core.ls(this.getCDI(), page);
     return cards
       .map(
@@ -101,6 +101,10 @@ export class TerminalService {
           } SPEC: ${JSON.stringify(card.spec)}`
       )
       .join('\n');
+  }
+
+  public async finCardByContent(args: any) {
+    return (await this.core.findCardByContent(args)).map(card => card.id + " " + card.contents).join("\n")
   }
 }
 

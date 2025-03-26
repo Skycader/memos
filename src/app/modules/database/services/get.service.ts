@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
 import { db } from './db';
-import { QueryService } from './query.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GetService {
-  constructor(private query: QueryService) { }
+  constructor() { }
 
   async dirByOwner(owner: string) {
     return await db.directory

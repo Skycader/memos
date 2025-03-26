@@ -125,6 +125,10 @@ export class CoreService {
     return await this.db.remove.dirById(id);
   }
 
+  public async findCardByContent(content: string) {
+    return await this.db.find.cardByContent(content);
+  }
+
   /**
    * Drop database
    */
