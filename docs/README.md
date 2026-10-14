@@ -5,6 +5,8 @@ here: `help` in the terminal is generated from the code and is always up to date
 
 | File | About |
 | --- | --- |
+| [domain.md](domain.md) | what a directory, card, field and tip are; what is built and what is planned |
+| [roadmap.md](roadmap.md) | plans, from the next steps to the far future |
 | [architecture.md](architecture.md) | layers, modules, data model, the main rules |
 | [terminal.md](terminal.md) | how the terminal works, how to add a command |
 | [testing.md](testing.md) | the `test` and `doctor` commands, how to extend them |
