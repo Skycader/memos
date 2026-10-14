@@ -4,6 +4,8 @@ import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { DebugService } from '../../debug/services/debug.service';
 import { DoctorService } from '../../debug/services/doctor.service';
+import { ExchangeService } from '../../exchange/exchange.service';
+import { FileService } from '../../exchange/file.service';
 import { allCommandNames, COMMANDS, findCommand } from '../commands';
 import { CommandContext, Output } from '../commands/command';
 import { TerminalService } from './terminal.service';
@@ -24,7 +26,9 @@ export class ShellService {
     private debug: DebugService,
     private doctor: DoctorService,
     private theme: ThemeService,
-    private font: FontService
+    private font: FontService,
+    private exchange: ExchangeService,
+    private files: FileService
   ) {}
 
   /**
@@ -131,6 +135,8 @@ export class ShellService {
       doctor: this.doctor,
       theme: this.theme,
       font: this.font,
+      exchange: this.exchange,
+      files: this.files,
       commands: COMMANDS,
       capture: (line) => this.capture(line),
       complete: (buffer) => this.complete(buffer),

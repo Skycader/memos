@@ -18,9 +18,10 @@ setup and is one word away.
   the test's own orphans are moved;
 - the user's current directory and theme are put back.
 
-What it covers: the schema, theme, tokenizer, the registry, mkdir/touch/ls/rmdir, integrity,
-orphans and `doctor fix`, unique titles, id collisions, and whole command lines through the shell
-(quotes, paths, errors, help).
+What it covers: the schema, theme and font, tokenizer, the registry, mkdir/touch/ls/rmdir, integrity,
+orphans and `doctor fix`, unique titles, id collisions, whole command lines through the shell
+(quotes, paths, Tab completion, errors, help), and CSV export/import (a round trip with progress,
+dry run, importing twice, bad files).
 
 ### Adding a check
 

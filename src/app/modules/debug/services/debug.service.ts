@@ -3,6 +3,8 @@ import { CoreService } from '../../core/services/core.service';
 import { db } from '../../database/services/db';
 import { MathService } from '../../math/services/math.service';
 import { FontService } from '../../core/services/font.service';
+import { parseCsv, toCsv } from '../../exchange/csv';
+import { ExchangeService } from '../../exchange/exchange.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { COMMANDS } from '../../terminal/commands';
 import { ShellRunner } from '../../terminal/commands/command';
@@ -31,6 +33,7 @@ export class DebugService {
     private math: MathService,
     private theme: ThemeService,
     private font: FontService,
+    private exchange: ExchangeService,
     private terminal: TerminalService
   ) {}
 
@@ -457,6 +460,134 @@ export class DebugService {
       }
 
       /**
+       * CSV: the pure part of export and import
+       */
+      const sample = [['a,b', 'say "hi"', 'two\nlines', '😀', '', ' padded '], ['x'], ['', '']];
+      check(
+        'csv: commas, quotes, line breaks, emoji and empty cells survive a round trip',
+        JSON.stringify(parseCsv(toCsv(sample))) === JSON.stringify(sample),
+        JSON.stringify(parseCsv(toCsv(sample)))
+      );
+      check(
+        'csv: Windows line breaks, a missing final line break and blank lines are fine',
+        JSON.stringify(parseCsv('a,b\r\n\r\nc,d')) === JSON.stringify([['a', 'b'], ['c', 'd']])
+      );
+      let unclosed = false;
+      try {
+        parseCsv('a,"b');
+      } catch {
+        unclosed = true;
+      }
+      check('csv: an unclosed quote is an error', unclosed);
+
+      /**
+       * EXPORT AND IMPORT: a tree with awkward names and progress goes out, is deleted,
+       * comes back from the file, and must be the same. The real database is exported
+       * as a whole, so only the test's own rows are cut out of the file for the import.
+       */
+      const mine = (text: string) =>
+        parseCsv(text).filter(
+          (row) =>
+            row[0] !== 'memos' && (row[1] === TEST_TITLE || row[1].startsWith(TEST_TITLE + '/'))
+        );
+      const canon = (rows: string[][]) => rows.map((row) => JSON.stringify(row)).sort().join('\n');
+
+      const root5 = String(await this.core.mkdir('/', '🧪', TEST_TITLE, ['Front', 'Back']));
+      const verbs = String(
+        await this.core.mkdir(root5, '📁', 'Verbs, "irregular"', ['Q', 'A', 'Tip'])
+      );
+      const verbsDeep = String(await this.core.mkdir(verbs, '📂', 'deep', ['Q', 'A']));
+      await this.core.touch(['Un chat, "le" chat', 'A cat\nwith a line break'], root5);
+      await this.core.touch(['être', 'to be', 'irregular'], verbs);
+      await this.core.touch(['aller', 'to go', ''], verbs);
+      await this.core.touch(['q', 'a'], verbsDeep);
+      await this.core.touch(['q2', 'a2'], verbsDeep);
+      const etre = (await db.card.where('owner').equals(verbs).toArray()).find(
+        (card) => card.contents[0] === 'être'
+      );
+      await db.card.update((etre as any).id, {
+        next: 1900000000000,
+        prev: 1800000000000,
+        spec: { status: [[1], [0], []], qfields: [2], maxInterval: 30 },
+      });
+
+      const exported = await this.exchange.exportCsv();
+      const before = mine(exported.text);
+      check(
+        'export: the file has the directories, the cards and the progress',
+        before.filter((row) => row[0] === 'dir').length === 3 &&
+          before.filter((row) => row[0] === 'card').length === 5 &&
+          before.some(
+            (row) =>
+              row[0] === 'card' &&
+              row[2] === '1900000000000' &&
+              row[3] === '1800000000000' &&
+              row[4].includes('"qfields":[2]')
+          ),
+        `${before.length} rows`
+      );
+      check(
+        'export: starts with the format row, no BOM',
+        exported.text.startsWith(`memos,1,${db.name},`) && !exported.text.startsWith('﻿')
+      );
+      check(
+        'export: the file is named <database>-<date>.csv',
+        this.exchange.fileName(new Date(2026, 9, 14)) === `${db.name}-2026-10-14.csv`,
+        this.exchange.fileName(new Date(2026, 9, 14))
+      );
+
+      const only = toCsv([parseCsv(exported.text)[0], ...before]);
+      await this.core.removeDir(root5);
+      check('import: setup, the tree is gone before the import', (await this.findTestRoots()).length === 0);
+
+      const dry = await this.exchange.importCsv(only, true);
+      check(
+        'import --dry-run: reports what would happen and writes nothing',
+        dry.dirsCreated === 3 &&
+          dry.cardsAdded === 5 &&
+          (await this.findTestRoots()).length === 0,
+        JSON.stringify(dry)
+      );
+
+      const imported = await this.exchange.importCsv(only);
+      check(
+        'import: creates the directories and the cards',
+        imported.dirsCreated === 3 &&
+          imported.cardsAdded === 5 &&
+          imported.cardsSkipped === 0 &&
+          imported.warnings.length === 0,
+        JSON.stringify(imported)
+      );
+      check(
+        'import: what comes back equals what went out (names, sides, icons, progress)',
+        canon(mine((await this.exchange.exportCsv()).text)) === canon(before)
+      );
+
+      const again = await this.exchange.importCsv(only);
+      check(
+        'import: a second import adds nothing (merge, same cards are skipped)',
+        again.dirsCreated === 0 &&
+          again.dirsMerged === 3 &&
+          again.cardsAdded === 0 &&
+          again.cardsSkipped === 5,
+        JSON.stringify(again)
+      );
+
+      const bad: string[] = [];
+      for (const text of ['hello,world\n', 'memos,2\n', 'memos,1\nfoo,bar\n', 'memos,1\ndir,../x,I\n', 'memos,1\ncard,a,1,2\n']) {
+        try {
+          await this.exchange.importCsv(text);
+          bad.push(JSON.stringify(text));
+        } catch {
+          /** expected */
+        }
+      }
+      check('import: refuses files that are not a Memos CSV', bad.length === 0, `accepted: ${bad.join()}`);
+
+      /** the imported copy must go before the next scenario uses the same title */
+      await this.purge(await this.findTestRoots());
+
+      /**
        * UNIQUE TITLES
        */
       root3 = String(await this.core.mkdir('/', '🧪', TEST_TITLE, []));
@@ -556,6 +687,8 @@ export class DebugService {
        * CLEANUP: always, even when something above has failed
        */
       await this.purge([root, a, b, deep, root2, stray, root3, root4].filter((id) => id !== ''));
+      /** whatever else sits under the reserved title, for example an imported copy after a failure */
+      await this.purge(await this.findTestRoots());
       await db.card.bulkDelete(strayCards as any);
       /** the terminal scenario moved around: put the user back where they were */
       this.terminal.setPath(userPath);

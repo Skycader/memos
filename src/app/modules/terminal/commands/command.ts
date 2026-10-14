@@ -3,6 +3,8 @@ import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { DebugService } from '../../debug/services/debug.service';
 import { DoctorService } from '../../debug/services/doctor.service';
+import { ExchangeService } from '../../exchange/exchange.service';
+import { FileService } from '../../exchange/file.service';
 import { TerminalService } from '../services/terminal.service';
 
 /**
@@ -37,6 +39,10 @@ export interface CommandContext extends Output, ShellRunner {
   doctor: DoctorService;
   theme: ThemeService;
   font: FontService;
+  /** export and import of the database as CSV */
+  exchange: ExchangeService;
+  /** download and the file picker of the browser */
+  files: FileService;
   /** the registry, for help */
   commands: TerminalCommand[];
 }
@@ -51,7 +57,7 @@ export interface TerminalCommand {
   /** extra lines for help, examples and warnings */
   notes?: string[];
   /** commands of one group go together in help */
-  group: 'navigation' | 'edit' | 'system' | 'diagnostics';
+  group: 'navigation' | 'edit' | 'data' | 'system' | 'diagnostics';
   /**
    * Run the command. Print with ctx.out / ctx.err, throw to report an error.
    * Async by default: just await, there is no need for placeholders

@@ -9,6 +9,7 @@ here: `help` in the terminal is generated from the code and is always up to date
 | [roadmap.md](roadmap.md) | plans, from the next steps to the far future |
 | [architecture.md](architecture.md) | layers, modules, data model, the main rules |
 | [terminal.md](terminal.md) | how the terminal works, how to add a command |
+| [exchange.md](exchange.md) | `export` and `import`: the CSV file and the rules of import |
 | [testing.md](testing.md) | the `test` and `doctor` commands, how to extend them |
 
 ## Where explanations live

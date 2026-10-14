@@ -7,7 +7,8 @@ This is a sketch to steer by, not a promise; change it freely.
 ## 0. Done
 
 Core on Dexie, directories and cards, transactional `rmdir`, unique titles, id collision
-retries, `doctor`, `test` (self-test), terminal with a command registry, themes, docs.
+retries, `doctor`, `test` (self-test), terminal with a command registry, themes and fonts,
+`export` / `import` in CSV, docs.
 
 ## 1. Finish the model
 
@@ -36,7 +37,9 @@ retries, `doctor`, `test` (self-test), terminal with a command registry, themes,
 
 ## 4. Safety of data
 
-- Export and import (JSON), the `backup` module.
+- **Done:** `export` and `import` in CSV, see [exchange.md](exchange.md).
+- A full backup (with the review log and settings) as a separate, later JSON format.
+  The `backup` module is for that.
 - Schema migrations with tests, so an old database always opens.
 - Later: synchronisation between devices.
 
@@ -58,6 +61,37 @@ retries, `doctor`, `test` (self-test), terminal with a command registry, themes,
 ## 8. Far away
 
 - Accounts, shared decks, statistics with charts.
+
+## Parked ideas
+
+Good ideas that are not scheduled yet. Written down so they are not lost.
+
+### `db`: several databases
+
+```
+db              show the name of the current database
+db use <name>   switch to another database, create it if it does not exist
+db drop <name>  delete a database, no confirmation
+```
+
+Notes for when it is built:
+
+- Today the database is the one module-level constant `db` (`database/services/db.ts`) with
+  the fixed name `memos`, and the services import it directly. Switching needs a small provider
+  that holds the current database and that services ask for it, instead of importing the constant.
+- The current name is remembered between sessions the same way as the theme and the font
+  (`localStorage`), and the terminal session path is reset on a switch.
+- `Dexie.getDatabaseNames()` can list the databases, so a `db ls` is nearly free.
+- It gives `test` what it lacked: a throw-away database (for example `memos-test`) that the real
+  data can not be touched from, instead of the reserved `/__test__` directory.
+- **Decided:** `db drop <name>` can not delete the current database. It refuses and says so; to
+  remove it, switch to another one first (`db use ...`), then drop it. No confirmation otherwise.
+- **Decided:** `db drop <name>` can not delete the last remaining database either. Usually this
+  is already covered by the rule above (the only database is the current one), but the check stays
+  on its own so it also holds when the current name points to a database that was not created yet.
+- Open: the existing `drop` erases the current database, which the rule above forbids for
+  `db drop`. Probably `drop` stays as "wipe the current database" under its own name, or goes away
+  once `db` exists; to be decided when `db` is built.
 
 ## Standing rules
 
