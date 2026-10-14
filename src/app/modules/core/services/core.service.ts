@@ -1,8 +1,20 @@
 import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
-import { Directory } from '../../database/services/db';
+import { Card, Directory } from '../../database/services/db';
 import { CardSPEC } from '../models/spec.model';
+
+/** how many items one page of a listing holds */
+export const PAGE_SIZE = 20;
+
+/** one page of a directory listing */
+export interface Listing {
+  dirs: Directory[];
+  cards: Card[];
+  /** counted from 1 */
+  page: number;
+  pages: number;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -132,13 +144,44 @@ export class CoreService {
   }
 
   /**
-   * List cards by owner dir
-   * @param owner:string
-   * @returns
+   * One page of the cards of a directory
+   * @param owner id of the directory
+   * @param page counted from 0
    */
-  public async ls(owner: string, page: number) {
-    const cards = await this.db.get.cardsByOwner(owner, 10, 0);
-    return cards;
+  public async ls(owner: string, page: number): Promise<Card[]> {
+    return await this.db.get.cardsByOwner(owner, PAGE_SIZE, page * PAGE_SIZE);
+  }
+
+  /**
+   * One page of what a directory holds: directories first (by title), then cards.
+   * The two kinds are one list cut into pages of PAGE_SIZE, so a page may hold both
+   * @param kinds what to list
+   * @param page counted from 1
+   * @throws Error if the page does not exist
+   */
+  public async list(
+    owner: string,
+    kinds: { dirs: boolean; cards: boolean },
+    page: number
+  ): Promise<Listing> {
+    const dirs = kinds.dirs
+      ? [...(await this.db.get.dirByOwner(owner))].sort((a, b) => a.title.localeCompare(b.title))
+      : [];
+    const cardCount = kinds.cards ? await this.db.get.countCardsByOwner(owner) : 0;
+
+    const pages = Math.max(1, Math.ceil((dirs.length + cardCount) / PAGE_SIZE));
+    if (page < 1 || page > pages)
+      throw new Error(`There is no page ${page}: the listing has ${pages} page${pages === 1 ? '' : 's'}`);
+
+    const from = (page - 1) * PAGE_SIZE;
+    const dirsHere = dirs.slice(from, from + PAGE_SIZE);
+    const room = PAGE_SIZE - dirsHere.length;
+    const cards =
+      kinds.cards && room > 0
+        ? await this.db.get.cardsByOwner(owner, room, Math.max(0, from - dirs.length))
+        : [];
+
+    return { dirs: dirsHere, cards, page, pages };
   }
 
   public async removeDir(id: string) {

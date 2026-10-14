@@ -31,6 +31,24 @@ export const exportCommand: TerminalCommand = {
   },
 };
 
+export const seed: TerminalCommand = {
+  name: 'seed',
+  group: 'data',
+  usage: 'seed',
+  description: 'create the directory "Demo" with test data in the current directory',
+  notes: [
+    'Three decks: French (3 sides, 26 cards: more than one page of ls), Capitals and Math',
+    'All or nothing; refuses if "Demo" is already there. Remove it with rmdir <id>',
+  ],
+  async run(args, ctx) {
+    if (args.length > 0) throw new Error('Usage: seed');
+    const result = await ctx.seed.run(ctx.terminal.getCDI());
+    ctx.out(
+      `Created "Demo" (id ${result.id}): ${result.dirs} directories and ${result.cards} cards. Try: cd Demo, ls`
+    );
+  },
+};
+
 export const importCommand: TerminalCommand = {
   name: 'import',
   group: 'data',

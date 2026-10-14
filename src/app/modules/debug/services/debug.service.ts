@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
-import { db } from '../../database/services/db';
+import { AppDB, db, wipe } from '../../database/services/db';
 import { MathService } from '../../math/services/math.service';
 import { FontService } from '../../core/services/font.service';
 import { parseCsv, toCsv } from '../../exchange/csv';
@@ -172,6 +172,28 @@ export class DebugService {
         'font: names are found ignoring case',
         this.font.find('jetbrainsmono') === 'JetBrainsMono' && this.font.find('comic') === undefined
       );
+
+      /**
+       * DROP: erasing a database must leave it empty and still usable, with no reload.
+       * Done on a scratch database: `test` must never touch the real data
+       */
+      const scratch = new AppDB('memos-scratch-drop');
+      try {
+        const sample = { id: 'SCR1', owner: '/', icon: 'x', title: 'before', fields: [] };
+        await scratch.directory.add(sample);
+        await wipe(scratch);
+        const emptied = (await scratch.directory.count()) === 0;
+        await scratch.directory.add({ ...sample, title: 'after' });
+        check(
+          'drop: the database is empty afterwards and still usable (no reload needed)',
+          emptied && scratch.isOpen() && (await scratch.directory.count()) === 1,
+          `empty: ${emptied}, open: ${scratch.isOpen()}`
+        );
+      } catch (e: any) {
+        check('drop: the database is empty afterwards and still usable (no reload needed)', false, e?.message);
+      } finally {
+        await scratch.delete();
+      }
 
       /**
        * SCHEMA
@@ -377,10 +399,117 @@ export class DebugService {
             (await run('ls -')).err.includes('Usage: ls')
         );
         check(
-          'lsd is gone, lsdir and dir still work',
+          'lsd, lsdir and dir are gone: ls d replaces them',
           (await run('lsd')).err.includes('not found') &&
-            (await run('lsdir')).out === lsDirs &&
-            (await run('dir')).out === lsDirs
+            (await run('lsdir')).err.includes('not found') &&
+            (await run('dir')).err.includes('not found')
+        );
+
+        /**
+         * ls pages: 3 directories and 45 cards are 48 items, so 3 pages of 20, 20 and 8
+         */
+        await run('mkdir 📄 Pages Q A');
+        const pagesId = (await this.core.lsdir(root4, 0)).find((dir) => dir.title === 'Pages')?.id ?? '';
+        for (const name of ['d1', 'd2', 'd3']) await this.core.mkdir(pagesId, '📁', name, []);
+        for (let i = 1; i <= 45; i++) await this.core.touch([`q${i}`, `a${i}`], pagesId);
+        await run('cd Pages');
+
+        const count = (text: string, word: string) => (text.match(new RegExp(`${word} `, 'g')) ?? []).length;
+        const idsOf = (text: string) => [...text.matchAll(/CARD (\w+) /g)].map((match) => match[1]);
+        const page1 = (await run('ls')).out;
+        const page2 = (await run('ls 2')).out;
+        const page3 = (await run('ls 3')).out;
+        check(
+          'ls: the first page has the directories, then cards, and says "page 1 of 3"',
+          count(page1, 'DIR') === 3 &&
+            count(page1, 'CARD') === 17 &&
+            page1.includes('page 1 of 3') &&
+            page1.includes('ls 2 for the next page'),
+          page1.split('\n').slice(-2).join(' | ')
+        );
+        check(
+          'ls 2 and ls 3: the next pages, the last one without a next-page hint',
+          count(page2, 'CARD') === 20 &&
+            page2.includes('page 2 of 3') &&
+            count(page3, 'CARD') === 8 &&
+            page3.includes('page 3 of 3') &&
+            !page3.includes('for the next page')
+        );
+        const allIds = [...idsOf(page1), ...idsOf(page2), ...idsOf(page3)];
+        check(
+          'ls: the pages together hold every card exactly once',
+          allIds.length === 45 && new Set(allIds).size === 45,
+          `${allIds.length} cards, ${new Set(allIds).size} different`
+        );
+        const cardPage = (await run('ls c')).out;
+        check(
+          'ls c: pages count only cards, and the hint keeps the filter',
+          count(cardPage, 'DIR') === 0 &&
+            count(cardPage, 'CARD') === 20 &&
+            cardPage.includes('page 1 of 3') &&
+            cardPage.includes('ls c 2 for the next page') &&
+            (await run('ls 3 c')).out.includes('page 3 of 3') &&
+            (await run('ls d')).out.includes('page') === false
+        );
+        const farPage = await run('ls 4');
+        check(
+          'ls: a page that does not exist, page 0 and two page numbers are errors',
+          farPage.err.includes('no page 4') &&
+            (await run('ls 0')).err.includes('counted from 1') &&
+            (await run('ls 1 2')).err.includes('Usage: ls'),
+          farPage.err
+        );
+        check(
+          'ls: a short directory has no page line',
+          !lsAll.includes('page ') && !lsAll.includes('of ')
+        );
+
+        /** put the scene back: the rest of the scenario expects /__test__ with one directory */
+        await run(`cd /${TEST_TITLE}`);
+        await this.core.removeDir(pagesId);
+
+        /**
+         * seed: the demo data goes into the current directory (/__test__)
+         */
+        const seeded = await run('seed');
+        check(
+          'seed: creates "Demo" with 3 decks and 46 cards',
+          seeded.err === '' && seeded.out.includes('4 directories and 46 cards'),
+          seeded.out + seeded.err
+        );
+        await run('cd Demo');
+        const decks = (await run('ls d')).out;
+        check(
+          'seed: Demo holds French (3 sides), Capitals and Math',
+          decks.includes('[Original,Transcription,Translation]') &&
+            decks.includes('Capitals') &&
+            decks.includes('Math')
+        );
+        await run('cd French');
+        const french1 = (await run('ls')).out;
+        const french2 = (await run('ls 2')).out;
+        check(
+          'seed: French has 26 cards, 2 pages of ls',
+          french1.includes('page 1 of 2') &&
+            count(french1, 'CARD') === 20 &&
+            count(french2, 'CARD') === 6 &&
+            Number(french1.includes('[le chat,/lə ʃa/,cat]')) +
+              Number(french2.includes('[le chat,/lə ʃa/,cat]')) ===
+              1
+        );
+        await run(`cd /${TEST_TITLE}`);
+        const secondSeed = await run('seed');
+        check(
+          'seed: refuses to run twice in the same directory, and says how to remove it',
+          secondSeed.err.includes('already exists') && secondSeed.err.includes('rmdir'),
+          secondSeed.err
+        );
+        const demoId = (await this.core.lsdir(root4, 0)).find((dir) => dir.title === 'Demo')?.id ?? '';
+        await this.core.removeDir(demoId);
+        check(
+          'seed: Demo is removed as a whole by rmdir (no cards left behind)',
+          (await db.card.where('owner').equals(demoId).count()) === 0 &&
+            (await this.core.lsdir(root4, 0)).every((dir) => dir.title !== 'Demo')
         );
         /** Tab completion, with the directories created above next to us */
         const tab = async (typed: string) => (await shell.complete(typed)).buffer;
@@ -392,7 +521,7 @@ export class DebugService {
         );
         check(
           'tab: lists the options when a name is ambiguous',
-          (await tabOptions('d')).sort().join() === 'dir,doctor,drop',
+          (await tabOptions('d')).sort().join() === 'doctor,drop',
           (await tabOptions('d')).join()
         );
         check(

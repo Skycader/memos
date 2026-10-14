@@ -51,55 +51,61 @@ const formatDir = (dir: Directory) =>
 const formatCard = (card: Card) =>
   ` · CARD ${card.id} owned by ${card.owner} has sides [${card.contents.join()}] next: ${card.next} prev: ${card.prev} SPEC: ${JSON.stringify(card.spec)}`;
 
-export const lsdir: TerminalCommand = {
-  name: 'lsdir',
-  aliases: ['dir'],
-  group: 'navigation',
-  usage: 'lsdir',
-  description: 'list directories in the current directory (same as ls d)',
-  notes: ['Output: DIR <id> <icon> <title> [sides]'],
-  async run(args, ctx) {
-    const dirs = await ctx.core.lsdir(ctx.terminal.getCDI(), 0);
-    if (dirs.length === 0) return;
-    ctx.out(dirs.map(formatDir).join('\n'));
-  },
-};
+const LS_USAGE = 'Usage: ls [d|c] [page]';
 
 /**
- * Which kinds of things ls was asked for: nothing given means both
- * d or -d: directories, c or -c: cards, dc or -dc: both
+ * What ls was asked for. In any order:
+ * · d or -d: directories, c or -c: cards, dc or -dc: both; nothing given means both
+ * · a number: the page (the first one by default)
  */
-function lsKinds(args: string[]): { dirs: boolean; cards: boolean } {
-  if (args.length === 0) return { dirs: true, cards: true };
+function lsOptions(args: string[]) {
   let dirs = false;
   let cards = false;
+  let page: number | undefined;
+
   for (const arg of args) {
+    if (/^\d+$/.test(arg)) {
+      if (page !== undefined) throw new Error(LS_USAGE);
+      page = Number(arg);
+      if (page < 1) throw new Error('Pages are counted from 1');
+      continue;
+    }
     const letters = arg.startsWith('-') ? arg.slice(1) : arg;
-    if (!/^[dc]+$/.test(letters)) throw new Error('Usage: ls [d|c]');
+    if (!/^[dc]+$/.test(letters)) throw new Error(LS_USAGE);
     if (letters.includes('d')) dirs = true;
     if (letters.includes('c')) cards = true;
   }
-  return { dirs, cards };
+
+  if (!dirs && !cards) dirs = cards = true;
+  return { dirs, cards, page: page ?? 1 };
 }
 
 export const ls: TerminalCommand = {
   name: 'ls',
   group: 'navigation',
-  usage: 'ls [d|c]',
+  usage: 'ls [d|c] [page]',
   description: 'list directories and cards in the current directory',
   notes: [
     'ls d (or ls -d) - only directories',
-    'ls c (or ls -c) - only cards (the first 10)',
+    'ls c (or ls -c) - only cards',
+    'ls 2 - the second page; a page holds 20 items, directories first, then cards',
+    'Example: ls c 3 - the third page of cards',
     'Output: DIR <id> <icon> <title> [sides] and CARD <id> ... sides [...]',
   ],
   async run(args, ctx) {
-    const kinds = lsKinds(args);
-    const owner = ctx.terminal.getCDI();
-    const lines: string[] = [];
+    const { dirs, cards, page } = lsOptions(args);
+    const listing = await ctx.core.list(ctx.terminal.getCDI(), { dirs, cards }, page);
 
-    if (kinds.dirs) lines.push(...(await ctx.core.lsdir(owner, 0)).map(formatDir));
-    if (kinds.cards) lines.push(...(await ctx.core.ls(owner, 0)).map(formatCard));
-
+    const lines = [...listing.dirs.map(formatDir), ...listing.cards.map(formatCard)];
+    if (listing.pages > 1) {
+      /** the hint repeats the filter, so the next page is of the same listing */
+      const filter = dirs && !cards ? 'd ' : cards && !dirs ? 'c ' : '';
+      const next =
+        listing.page < listing.pages
+          ? ` (ls ${filter}${listing.page + 1} for the next page)`
+          : '';
+      lines.push(`╰─ page ${listing.page} of ${listing.pages}${next}`);
+    }
     if (lines.length > 0) ctx.out(lines.join('\n'));
   },
   async complete(partial) {

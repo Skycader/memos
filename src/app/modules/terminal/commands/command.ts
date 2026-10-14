@@ -3,6 +3,7 @@ import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { DebugService } from '../../debug/services/debug.service';
 import { DoctorService } from '../../debug/services/doctor.service';
+import { SeedService } from '../../debug/services/seed.service';
 import { ExchangeService } from '../../exchange/exchange.service';
 import { FileService } from '../../exchange/file.service';
 import { TerminalService } from '../services/terminal.service';
@@ -43,13 +44,15 @@ export interface CommandContext extends Output, ShellRunner {
   exchange: ExchangeService;
   /** download and the file picker of the browser */
   files: FileService;
+  /** test data */
+  seed: SeedService;
   /** the registry, for help */
   commands: TerminalCommand[];
 }
 
 export interface TerminalCommand {
   name: string;
-  /** other names of the same command, for example dir for lsdir */
+  /** other names that run the same command (no command has any at the moment) */
   aliases?: string[];
   /** how to call it: `mkdir <icon> <title> <sides...>` */
   usage: string;

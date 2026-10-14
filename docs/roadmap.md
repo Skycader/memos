@@ -24,16 +24,19 @@ comes with a check in `test`.
   Nothing references them (the manifest uses `assets/icons`, `index.html` uses `favicon.ico`), they
   were deleted by mistake and restored. Decide together with the new icons.
 
-**Planned**
-- `drop` must not leave the app dead: today the database stays closed and every command fails
-  with `DatabaseClosedError` until the page is reloaded. Reopen it after the delete (this also
-  matters for the future `db` command).
+- `drop` no longer leaves the app dead: the database is reopened, empty, right after the delete
+  (`wipe` in `db.ts`; it was `DatabaseClosedError` on every command until a reload). `test` checks
+  it on a scratch database, never on the real one.
+- `ls` pages: `ls [d|c] [page]`, 20 items per page (directories first, then cards), and a line
+  `page 1 of 3 (ls 2 for the next page)` when there is more than one page. While testing it a real
+  bug turned up and was fixed: `cardsByOwner` called Dexie's `limit().offset()`, which takes first and
+  skips after, so every page but the first came out wrong.
+
+**Postponed (the author: "to the long drawer")**
 - A failing database must be visible: say so when IndexedDB can not be opened (private mode),
   and handle `versionchange` / `blocked` so a schema upgrade does not hang when a second tab is open.
 
 **Proposed, waiting for the author**
-- `ls` shows only the first 10 cards and says nothing about the rest. Proposal: `ls [page]`,
-  20 per page, with a line "page 1 of 3".
 - `doctor` should also report directories with the same title in one directory (old data from
   before titles became unique); `cd` takes the first one it finds.
 - Whether the service worker (offline loading and installing as an app) is wanted at all.

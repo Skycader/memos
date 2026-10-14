@@ -38,13 +38,18 @@ export class GetService {
     return await db.directory.where({ owner, title }).first();
   }
 
+  async countCardsByOwner(owner: string) {
+    return await db.card.where({ owner }).count();
+  }
+
   async cardsByOwner(owner: string, limit: number, offset: number) {
     return await db.card
       .where({
         owner: owner,
       })
-      .limit(limit)
+      /** skip first, then take: Dexie applies limit().offset() the other way round */
       .offset(offset)
+      .limit(limit)
       .toArray();
   }
 }

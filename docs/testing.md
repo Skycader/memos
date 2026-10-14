@@ -21,7 +21,8 @@ setup and is one word away.
 What it covers: the schema, theme and font, tokenizer, the registry, mkdir/touch/ls/rmdir, integrity,
 orphans and `doctor fix`, unique titles, id collisions, whole command lines through the shell
 (quotes, paths, Tab completion, errors, help), and CSV export/import (a round trip with progress,
-dry run, importing twice, bad files).
+dry run, importing twice, bad files), `drop` (on a scratch database: it must stay open and usable) and
+`ls` pages (3 directories and 45 cards: every card exactly once across 3 pages, hints, errors).
 
 ### Adding a check
 
@@ -36,6 +37,21 @@ check('what must hold', condition, 'details shown only when it fails');
   when the thing under test is the terminal itself.
 - Force rare situations instead of waiting for them. Example: the id-collision checks replace
   `MathService.makeId` for a moment so that the first ids are already taken, then restore it.
+
+## `seed`: test data to try things on
+
+`seed` creates the directory `Demo` in the **current** directory, all or nothing (one transaction):
+
+| Deck | Sides | Cards |
+| --- | --- | --- |
+| `French` 🇫🇷 | Original, Transcription, Translation | 26 (more than one page of `ls`) |
+| `Capitals` 🌍 | Country, Capital | 12 |
+| `Math` ➗ | Question, Answer | 8 |
+
+It is meant for trying `ls` paging, `export` / `import`, and later `study` on something real. It
+refuses to run twice in one directory and prints the id to give to `rmdir`. The data lives in
+`modules/debug/services/seed.service.ts`; to change the demo, edit the `DECKS` list there.
+`seed` is not the reserved `/__test__`: `test` does not touch it and does not clean it up.
 
 ## Karma (`ng test`): known broken
 

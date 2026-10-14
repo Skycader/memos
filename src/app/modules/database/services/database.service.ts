@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { AddService } from './add.service';
-import { db } from './db';
+import { db, wipe } from './db';
 import { GetService } from './get.service';
 import { RemoveService } from './remove.service';
 
@@ -29,7 +29,10 @@ export class DatabaseService {
     public remove: RemoveService
   ) {}
 
+  /**
+   * Erase the whole database. It stays open and empty, ready for new data
+   */
   public async drop() {
-    return await db.delete();
+    await wipe(db);
   }
 }
