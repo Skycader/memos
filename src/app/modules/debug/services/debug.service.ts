@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { db } from '../../database/services/db';
 import { MathService } from '../../math/services/math.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { DoctorService } from './doctor.service';
 
 /**
@@ -22,7 +23,8 @@ export class DebugService {
   constructor(
     private core: CoreService,
     private doctor: DoctorService,
-    private math: MathService
+    private math: MathService,
+    private theme: ThemeService
   ) {}
 
   /**
@@ -70,6 +72,18 @@ export class DebugService {
     let root3 = '';
 
     try {
+      /**
+       * THEME: switch both ways, then put the user's theme back
+       */
+      const userTheme = this.theme.current;
+      const attr = () => document.documentElement.getAttribute('data-theme');
+      this.theme.set('dark');
+      const darkOk = attr() === 'dark' && localStorage.getItem('memos.theme') === 'dark';
+      this.theme.set('light');
+      const lightOk = attr() === 'light' && localStorage.getItem('memos.theme') === 'light';
+      this.theme.set(userTheme);
+      check('theme: dark and light are applied and remembered', darkOk && lightOk);
+
       /**
        * SCHEMA
        */

@@ -43,6 +43,9 @@ export const helpMessage = `
   ╰─ Only reports how many orphans there are, changes nothing
   ╰─ doctor fix - move orphans to /lost+found (nothing is deleted)
 
+  · theme <dark|light> - switch the color theme (remembered between sessions)
+  ╰─ theme - show the current theme
+
   · clear - clear terminal
   · drop - erase the WHOLE database (no confirmation!)
 

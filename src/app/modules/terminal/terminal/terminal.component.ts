@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { DebugService } from '../../debug/services/debug.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { DoctorService } from '../../debug/services/doctor.service';
 import { Command } from '../models/command.model';
 import { TerminalService } from '../services/terminal.service';
@@ -41,7 +42,8 @@ export class TerminalComponent {
     private terminal: TerminalService,
     private core: CoreService,
     private debug: DebugService,
-    private doctorService: DoctorService
+    private doctorService: DoctorService,
+    private themeService: ThemeService
   ) {}
 
   public ngAfterViewInit() {
@@ -96,6 +98,7 @@ export class TerminalComponent {
     pwd: () => this.terminal.pwd(),
     test: (args: string[]) => this.test(args),
     doctor: (args: string[]) => this.doctor(args),
+    theme: (args: string[]) => this.theme(args),
     '': () => {
       return {
         status: 200,
@@ -116,6 +119,20 @@ export class TerminalComponent {
         : await this.debug.selfTest();
     this.terminalModel = this.terminalModel.replace('⠀', () => report);
     return { status: 'pending' };
+  }
+
+  /**
+   * Switch the color theme
+   * @param args dark | light, without arguments shows the current theme
+   */
+  public theme(args: string[]) {
+    const name = args.at(0);
+    if (name === undefined)
+      return { status: 200, data: `Theme: ${this.themeService.current}` };
+    if (!this.themeService.isTheme(name))
+      return { status: 200, data: 'Usage: theme [dark|light]' };
+    this.themeService.set(name);
+    return { status: 200, data: `Theme: ${name}` };
   }
 
   /**
