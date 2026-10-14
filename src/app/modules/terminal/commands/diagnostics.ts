@@ -11,7 +11,7 @@ export const test: TerminalCommand = {
   ],
   async run(args, ctx) {
     if (args.at(0) === 'clean') ctx.out(await ctx.debug.cleanTest());
-    else ctx.out(await ctx.debug.selfTest(ctx.capture));
+    else ctx.out(await ctx.debug.selfTest(ctx));
   },
   async complete(partial) {
     return ['clean'].filter((name) => name.startsWith(partial));

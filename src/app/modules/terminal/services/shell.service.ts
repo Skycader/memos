@@ -133,6 +133,7 @@ export class ShellService {
       font: this.font,
       commands: COMMANDS,
       capture: (line) => this.capture(line),
+      complete: (buffer) => this.complete(buffer),
     };
   }
 }

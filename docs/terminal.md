@@ -68,6 +68,15 @@ so the session does not see stale data. After a directory is removed,
 Rules of thumb: commands call the core, not the database; they throw for errors instead of
 printing `(!)` themselves; they are `async` when they touch the database.
 
+A command that takes one of a fixed set of values (`font`, `theme`) follows one pattern:
+called bare it shows the current value **and** the available ones, a wrong value says
+`Usage: ... <a|b>`, and `complete` returns the values so Tab finishes them.
+
 ## Keys
 
-↑ / ↓ history, Tab completes a command name or the last word, Ctrl+L clears the screen.
+↑ / ↓ history, Ctrl+L clears the screen.
+
+Tab completes the command name, or the last word through the command's `complete`:
+`fo` -> `font `, `font J` -> `font JetBrainsMono`, `cd Su` -> `cd "Sub Dir"` (quoted when the
+name has spaces). When several options fit, the common part is filled in and the options are
+listed under the line. `test` checks all of this.

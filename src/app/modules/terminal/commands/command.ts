@@ -16,9 +16,20 @@ export interface Output {
 }
 
 /**
+ * What the shell can do for the self-test: run a whole command line,
+ * and complete a half-typed one like Tab does
+ */
+export interface ShellRunner {
+  /** run a command line and collect what it printed */
+  capture(line: string): Promise<{ out: string; err: string }>;
+  /** what Tab does to the typed text: the completed text, and the options if there are several */
+  complete(buffer: string): Promise<{ buffer: string; options: string[] }>;
+}
+
+/**
  * Everything a command gets to work with
  */
-export interface CommandContext extends Output {
+export interface CommandContext extends Output, ShellRunner {
   /** session: current directory and navigation */
   terminal: TerminalService;
   core: CoreService;
@@ -28,8 +39,6 @@ export interface CommandContext extends Output {
   font: FontService;
   /** the registry, for help */
   commands: TerminalCommand[];
-  /** run a command line and collect what it printed, used by the self-test */
-  capture(line: string): Promise<{ out: string; err: string }>;
 }
 
 export interface TerminalCommand {

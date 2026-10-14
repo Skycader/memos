@@ -51,11 +51,11 @@ export const theme: TerminalCommand = {
   group: 'system',
   usage: 'theme [dark|light]',
   description: 'switch the color theme (remembered between sessions)',
-  notes: ['theme - show the current theme'],
+  notes: ['theme - show the current theme and the available ones'],
   run(args, ctx) {
     const name = args.at(0);
     if (name === undefined) {
-      ctx.out(`Theme: ${ctx.theme.current}`);
+      ctx.out(`Theme: ${ctx.theme.current}\nAvailable: dark, light`);
       return;
     }
     if (!ctx.theme.isTheme(name)) throw new Error('Usage: theme [dark|light]');
@@ -72,11 +72,14 @@ export const font: TerminalCommand = {
   group: 'system',
   usage: 'font <JetBrainsMono|default>',
   description: 'switch the terminal font (remembered between sessions)',
-  notes: ['font - show the current font', 'default is the browser monospace font'],
+  notes: [
+    'font - show the current font and the available ones',
+    'default is the browser monospace font',
+  ],
   run(args, ctx) {
     const name = args.at(0);
     if (name === undefined) {
-      ctx.out(`Font: ${ctx.font.current}`);
+      ctx.out(`Font: ${ctx.font.current}\nAvailable: ${FONTS.join(', ')}`);
       return;
     }
     const found = ctx.font.find(name);

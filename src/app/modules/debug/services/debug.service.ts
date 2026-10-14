@@ -5,6 +5,7 @@ import { MathService } from '../../math/services/math.service';
 import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { COMMANDS } from '../../terminal/commands';
+import { ShellRunner } from '../../terminal/commands/command';
 import { TerminalService } from '../../terminal/services/terminal.service';
 import { tokenize } from '../../terminal/services/tokenizer';
 import { DoctorService } from './doctor.service';
@@ -35,12 +36,10 @@ export class DebugService {
 
   /**
    * Run the full scenario and return a printable report
-   * @param capture runs a command line like the terminal does and returns what it printed,
+   * @param shell runs command lines and completes them like the terminal does,
    * without it the terminal scenario is skipped
    */
-  public async selfTest(
-    capture?: (line: string) => Promise<{ out: string; err: string }>
-  ): Promise<string> {
+  public async selfTest(shell?: ShellRunner): Promise<string> {
     const lines: string[] = [];
     let passed = 0;
     let failed = 0;
@@ -338,8 +337,8 @@ export class DebugService {
        * TERMINAL: whole command lines, through the tokenizer and the registry,
        * exactly as typed. Runs in root, the user's directory is put back at the end
        */
-      if (capture) {
-        const run = async (line: string) => (await capture(line)) ?? { out: '', err: '' };
+      if (shell) {
+        const run = (line: string) => shell.capture(line);
 
         await run('cd /');
         const made = await run(`mkdir 🧪 ${TEST_TITLE} Front Back`);
@@ -348,6 +347,48 @@ export class DebugService {
 
         await run(`cd ${TEST_TITLE}`);
         await run('mkdir 📁 "Sub Dir" Q A');
+        /** Tab completion, with the directories created above next to us */
+        const tab = async (typed: string) => (await shell.complete(typed)).buffer;
+        const tabOptions = async (typed: string) => (await shell.complete(typed)).options;
+        check(
+          'tab: completes a command name',
+          (await tab('fo')) === 'font ' && (await tab('th')) === 'theme ',
+          `${await tab('fo')} | ${await tab('th')}`
+        );
+        check(
+          'tab: lists the options when a name is ambiguous',
+          (await tabOptions('d')).sort().join() === 'dir,doctor,drop',
+          (await tabOptions('d')).join()
+        );
+        check(
+          'tab: completes the argument of a command to the end (font J -> JetBrainsMono)',
+          (await tab('font J')) === 'font JetBrainsMono' &&
+            (await tab('font jet')) === 'font JetBrainsMono' &&
+            (await tab('theme d')) === 'theme dark' &&
+            (await tab('doctor f')) === 'doctor fix'
+        );
+        check(
+          'tab: completes a directory name, quoting it when it has spaces',
+          (await tab('cd Sub')) === 'cd "Sub Dir"' && (await tab(`cd /${TEST_TITLE.slice(0, 4)}`)) === `cd /${TEST_TITLE}`,
+          `${await tab('cd Sub')} | ${await tab(`cd /${TEST_TITLE.slice(0, 4)}`)}`
+        );
+        check(
+          'tab: leaves the text alone when there is nothing to complete',
+          (await tab('font zzz')) === 'font zzz' && (await tab('frobnicate')) === 'frobnicate'
+        );
+
+        /** bare font and theme show the current value and what is available */
+        const fontInfo = (await run('font')).out;
+        const themeInfo = (await run('theme')).out;
+        check(
+          'font and theme without arguments show the current value and the available ones',
+          fontInfo.includes('Font: ') &&
+            fontInfo.includes('Available: default, JetBrainsMono') &&
+            themeInfo.includes('Theme: ') &&
+            themeInfo.includes('Available: dark, light'),
+          `${fontInfo} | ${themeInfo}`
+        );
+
         await run('cd "Sub Dir"');
         const where = (await run('pwd')).out;
         check('terminal: cd into a name with spaces (quotes)', where === `/${TEST_TITLE}/Sub Dir`, where);
