@@ -38,6 +38,10 @@ export const helpMessage = `
   ╰─ Works in the real database inside /__test__ and cleans up after itself
   ╰─ test clean - remove /__test__ left by a crashed run
 
+  · doctor - look for directories and cards hanging without a parent
+  ╰─ Only reports how many orphans there are, changes nothing
+  ╰─ doctor fix - move orphans to /lost+found (nothing is deleted)
+
   · clear - clear terminal
   · drop - erase the WHOLE database (no confirmation!)
 

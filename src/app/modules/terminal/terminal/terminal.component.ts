@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { DebugService } from '../../debug/services/debug.service';
+import { DoctorService } from '../../debug/services/doctor.service';
 import { Command } from '../models/command.model';
 import { TerminalService } from '../services/terminal.service';
 import { helpMessage } from './messeges';
@@ -39,7 +40,8 @@ export class TerminalComponent {
   constructor(
     private terminal: TerminalService,
     private core: CoreService,
-    private debug: DebugService
+    private debug: DebugService,
+    private doctorService: DoctorService
   ) {}
 
   public ngAfterViewInit() {
@@ -93,6 +95,7 @@ export class TerminalComponent {
     rmdir: (args: string[]) => this.rmdir(args),
     pwd: () => this.terminal.pwd(),
     test: (args: string[]) => this.test(args),
+    doctor: (args: string[]) => this.doctor(args),
     '': () => {
       return {
         status: 200,
@@ -111,6 +114,24 @@ export class TerminalComponent {
       args.at(0) === 'clean'
         ? await this.debug.cleanTest()
         : await this.debug.selfTest();
+    this.terminalModel = this.terminalModel.replace('⠀', () => report);
+    return { status: 'pending' };
+  }
+
+  /**
+   * Look for directories and cards hanging without a parent
+   * `doctor` only reports, `doctor fix` moves them to /lost+found
+   * @param args [fix]
+   */
+  public doctor(args: string[]) {
+    const arg = args.at(0);
+    if (arg !== undefined && arg !== 'fix')
+      return { status: 200, data: 'Usage: doctor [fix]' };
+    return this.runDoctor(arg === 'fix');
+  }
+
+  private async runDoctor(fix: boolean) {
+    const report = await this.doctorService.run(fix);
     this.terminalModel = this.terminalModel.replace('⠀', () => report);
     return { status: 'pending' };
   }
@@ -138,16 +159,18 @@ export class TerminalComponent {
    * (nested directories and cards)
    * @param args [id]
    */
-  public async rmdir(args: string[]) {
+  public rmdir(args: string[]) {
     const id = args.at(0);
-    let message = 'Usage: rmdir <id> (see ids in lsdir)';
-    if (id) {
-      const removed = await this.core.removeDir(id);
-      message =
-        removed > 0
-          ? `Removed ${removed} director${removed === 1 ? 'y' : 'ies'} with all cards`
-          : 'Directory does not exist';
-    }
+    if (!id) return { status: 200, data: 'Usage: rmdir <id> (see ids in lsdir)' };
+    return this.runRmdir(id);
+  }
+
+  private async runRmdir(id: string) {
+    const removed = await this.core.removeDir(id);
+    const message =
+      removed > 0
+        ? `Removed ${removed} director${removed === 1 ? 'y' : 'ies'} with all cards`
+        : 'Directory does not exist';
     this.terminalModel = this.terminalModel.replace('⠀', () => message);
     return { status: 'pending' };
   }

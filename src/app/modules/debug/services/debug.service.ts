@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { db } from '../../database/services/db';
+import { DoctorService } from './doctor.service';
 
 /**
  * Title of the root test directory. Everything the self-test creates
@@ -17,7 +18,7 @@ export class DebugService {
    * in the /__test__ directory, and cleans up after itself.
    * Triggered by the `test` terminal command.
    */
-  constructor(private core: CoreService) {}
+  constructor(private core: CoreService, private doctor: DoctorService) {}
 
   /**
    * Run the full scenario and return a printable report
@@ -50,6 +51,14 @@ export class DebugService {
     let a = '';
     let b = '';
     let deep = '';
+    /**
+     * Same for the doctor scenario: ids of its directories and cards,
+     * and whether /lost+found was created by this very test
+     */
+    let root2 = '';
+    let stray = '';
+    let strayCards: string[] = [];
+    let lostFoundIsOurs = false;
 
     try {
       /**
@@ -151,13 +160,70 @@ export class DebugService {
         orphanCards === 0,
         `${orphanCards} orphan card(s)`
       );
+
+      /**
+       * DOCTOR: simulate an interrupted removal, when the parent is already
+       * gone but its content is left behind. The scan is run over the real
+       * database, so only the test's own orphans are looked at and moved.
+       */
+      lostFoundIsOurs = (await this.doctor.findLostFound()) === null;
+      root2 = String(await this.core.mkdir('/', '🧪', TEST_TITLE, []));
+      stray = String(await this.core.mkdir(root2, '📁', 'stray', []));
+      await this.core.touch(['inside', 'hanging dir'], stray);
+      await this.core.touch(['direct', 'hanging card'], root2);
+      strayCards = (await db.card.where('owner').anyOf([stray, root2]).toArray()).map(
+        (card) => card.id
+      );
+      // raw delete of the parent only: this is what an interrupted rmdir would leave
+      await db.directory.delete(root2 as any);
+
+      const scan = await this.doctor.scan();
+      const myDirs = scan.orphanDirs.filter((dir) => dir.id === stray);
+      const myCards = scan.orphanCards.filter((card) => card.owner === root2);
+      check(
+        'doctor: finds a directory hanging without a parent',
+        myDirs.length === 1 && myDirs[0].cards === 1 && myDirs[0].subdirs === 0,
+        JSON.stringify(myDirs)
+      );
+      check('doctor: finds a card hanging without a parent', myCards.length === 1);
+
+      const moved = await this.doctor.moveToLostFound({
+        ...scan,
+        orphanDirs: myDirs,
+        orphanCards: myCards,
+      });
+      const lostFound = await this.doctor.findLostFound();
+      check(
+        'doctor fix: moves orphans to /lost+found',
+        moved.dirs === 1 &&
+          moved.cards === 1 &&
+          lostFound !== null &&
+          (await db.directory.get(stray as any))?.owner === lostFound &&
+          (await db.card.where('owner').equals(lostFound).count()) >= 1,
+        JSON.stringify(moved)
+      );
+
+      const after = await this.doctor.scan();
+      check(
+        'doctor fix: nothing of the test hangs anymore',
+        !after.orphanDirs.some((dir) => dir.id === stray) &&
+          !after.orphanCards.some((card) => strayCards.includes(card.id))
+      );
     } catch (e: any) {
       check('unexpected error', false, e?.message ?? String(e));
     } finally {
       /**
        * CLEANUP: always, even when something above has failed
        */
-      await this.purge([root, a, b, deep].filter((id) => id !== ''));
+      await this.purge([root, a, b, deep, root2, stray].filter((id) => id !== ''));
+      await db.card.bulkDelete(strayCards as any);
+      const lostFoundId = await this.doctor.findLostFound();
+      if (lostFoundIsOurs && lostFoundId !== null) {
+        const inside =
+          (await db.directory.where('owner').equals(lostFoundId).count()) +
+          (await db.card.where('owner').equals(lostFoundId).count());
+        if (inside === 0) await db.directory.delete(lostFoundId as any);
+      }
       const left = await this.findTestRoots();
       check('cleanup: no test directories left in /', left.length === 0);
     }
