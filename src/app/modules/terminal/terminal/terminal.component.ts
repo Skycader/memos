@@ -1,5 +1,6 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
+import { DebugService } from '../../debug/services/debug.service';
 import { Command } from '../models/command.model';
 import { TerminalService } from '../services/terminal.service';
 import { helpMessage } from './messeges';
@@ -35,7 +36,11 @@ export class TerminalComponent {
 
   @ViewChild('terminalRef') terminalRef!: ElementRef;
 
-  constructor(private terminal: TerminalService, private core: CoreService) {}
+  constructor(
+    private terminal: TerminalService,
+    private core: CoreService,
+    private debug: DebugService
+  ) {}
 
   public ngAfterViewInit() {
     this.clearTerminal();
@@ -85,8 +90,9 @@ export class TerminalComponent {
     lsd: (args: string) => this.lsdir(args),
     drop: (args: string) => this.drop(args),
     clear: () => this.clearTerminal(),
-    rmdir: (args: string) => this.rmdir(args),
+    rmdir: (args: string[]) => this.rmdir(args),
     pwd: () => this.terminal.pwd(),
+    test: (args: string[]) => this.test(args),
     '': () => {
       return {
         status: 200,
@@ -94,6 +100,20 @@ export class TerminalComponent {
       };
     },
   };
+
+  /**
+   * Self-test of the core (see DebugService.selfTest)
+   * `test` runs the scenario, `test clean` removes leftovers of a crashed run
+   * @param args
+   */
+  public async test(args: string[]) {
+    const report =
+      args.at(0) === 'clean'
+        ? await this.debug.cleanTest()
+        : await this.debug.selfTest();
+    this.terminalModel = this.terminalModel.replace('⠀', () => report);
+    return { status: 'pending' };
+  }
 
   public async ls(args: string[]) {
     let res: any = await this.terminal.ls(0);
@@ -113,14 +133,23 @@ export class TerminalComponent {
     return { status: 'pending' };
   }
 
-  //#TODO: 3. УДАЛАЯ ДИРЕКТОРИЮ -- УДАЛЯТЬ ВСЕ ВНУТРЕННИИ ФАЙЛЫ
-  // если есть папки - отмена
   /**
-   * Remove directory
-   * @param args
+   * Remove directory by id together with all its content
+   * (nested directories and cards)
+   * @param args [id]
    */
-  public async rmdir(args: string) {
-    this.core.removeDir(args);
+  public async rmdir(args: string[]) {
+    const id = args.at(0);
+    let message = 'Usage: rmdir <id> (see ids in lsdir)';
+    if (id) {
+      const removed = await this.core.removeDir(id);
+      message =
+        removed > 0
+          ? `Removed ${removed} director${removed === 1 ? 'y' : 'ies'} with all cards`
+          : 'Directory does not exist';
+    }
+    this.terminalModel = this.terminalModel.replace('⠀', () => message);
+    return { status: 'pending' };
   }
   /**
    * Erase database

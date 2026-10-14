@@ -6,27 +6,46 @@
 export const helpMessage = `
   Memos Terminal 2.0 by Vodri
   List of available commands:
-  · mkdir <icon> <title> <sides> - create catalog
+  · help - show this message
+
+  · mkdir <icon> <title> <sides...> - create a directory in the current one
+  ╰─ Arguments are split by spaces: title and sides are single words
   ╰─ Example: mkdir 🇫🇷 French Original Translation
 
-  · cd <dir name> - go to dir by name
+  · cd <dir name> - go to a directory by name (current directory only)
   ╰─ Example: cd French
   · cd .. - go up one level
   · cd / - go to root
-  · cd <path> - go to path
+
+  · pwd - display current path
 
   · lsdir - list directories in the current directory
   ╰─ Try also: lsd or dir - shorter version
+  ╰─ Output: DIR <id> <icon> <title> [sides]
 
-  · rmdir <dir name> - remove directory by name
-  ╰─ Example: rmdir French
+  · ls - list cards in the current directory (first 10)
 
-  · touch <content[]> - create a card
-  ╰─ Example: touch "Un chat" "A cat"
-  ╰─ Example: touch ?"Un chat" "A cat" => Make the first card side question only
-  
-  · pwd - display current path
+  · rmdir <id> - remove directory by id (see ids in lsdir)
+  ╰─ Example: rmdir aB3x
+  ╰─ Removes everything inside too: subdirectories and cards, at any depth
+
+  · touch <sides...> - create a card in the current directory
+  ╰─ Arguments are split by spaces: every word is one side
+  ╰─ Example: touch chat cat
+  ╰─ Not allowed in root (/): create cards inside a directory
+
+  · test - run self-test of the core (mkdir, touch, ls, rmdir, integrity)
+  ╰─ Works in the real database inside /__test__ and cleans up after itself
+  ╰─ test clean - remove /__test__ left by a crashed run
+
   · clear - clear terminal
+  · drop - erase the WHOLE database (no confirmation!)
+
+  Planned (not implemented yet):
+  · cd <path> - go to path (e.g. cd French/Verbs)
+  · touch "Un chat" "A cat" - sides with spaces in quotes
+  · touch ?"Un chat" "A cat" - make a side question only
+  · rmdir <dir name> - remove directory by name
 `;
 
 /**
