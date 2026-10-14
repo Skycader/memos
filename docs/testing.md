@@ -37,6 +37,14 @@ check('what must hold', condition, 'details shown only when it fails');
 - Force rare situations instead of waiting for them. Example: the id-collision checks replace
   `MathService.makeId` for a moment so that the first ids are already taken, then restore it.
 
+## Karma (`ng test`): known broken
+
+`ng test` still runs the specs that Angular generated: 14 tests, 4 fail (the template of
+`AppComponent` and `TerminalComponent` is not set up in the test module), the other 10 only check
+that a service can be created. They are not the real suite. Fixing them is postponed; until then
+trust `test` inside the app. Pure functions (the tokenizer, the CSV parser) are good candidates
+for the first real Karma specs.
+
 ## `doctor`: orphans
 
 `doctor` reports directories and cards that hang without a parent (for example after an

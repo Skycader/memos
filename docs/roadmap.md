@@ -10,6 +10,50 @@ Core on Dexie, directories and cards, transactional `rmdir`, unique titles, id c
 retries, `doctor`, `test` (self-test), terminal with a command registry, themes and fonts,
 `export` / `import` in CSV, docs.
 
+## Now: make it fully operational (no new features)
+
+The author's goal before more features: no flaws. An audit (2026-10-15) found these; each fix
+comes with a check in `test`.
+
+**Done**
+- WebSQL leftovers removed: `FindService`, `QueryService`, `row.model`, `tx.model`,
+  `window.openDatabase`, the old comments about a table of entities.
+- Duplicates removed: the second server module (`app.server.module.ts`) and the second type for a
+  directory (`Dir`, now `Directory` everywhere).
+- **Kept until the author looks at them:** `src/assets/icons2/` and `src/favicon-angular.ico`.
+  Nothing references them (the manifest uses `assets/icons`, `index.html` uses `favicon.ico`), they
+  were deleted by mistake and restored. Decide together with the new icons.
+
+**Planned**
+- `drop` must not leave the app dead: today the database stays closed and every command fails
+  with `DatabaseClosedError` until the page is reloaded. Reopen it after the delete (this also
+  matters for the future `db` command).
+- A failing database must be visible: say so when IndexedDB can not be opened (private mode),
+  and handle `versionchange` / `blocked` so a schema upgrade does not hang when a second tab is open.
+
+**Proposed, waiting for the author**
+- `ls` shows only the first 10 cards and says nothing about the rest. Proposal: `ls [page]`,
+  20 per page, with a line "page 1 of 3".
+- `doctor` should also report directories with the same title in one directory (old data from
+  before titles became unique); `cd` takes the first one it finds.
+- Whether the service worker (offline loading and installing as an app) is wanted at all.
+
+**Kept on purpose**
+- The empty modules (`backup`, `browser`, `core`, `debug`, `math`, `menu`, `repeat`) are scaffolding
+  for the future. Do not report them as dead code.
+- SSR stays: it works and does no harm.
+
+**Known broken**
+- Karma tests (`ng test`): 14 default specs, 4 fail, the other 10 are empty "should create" skeletons.
+  To be fixed later; `test` inside the app is the real suite.
+
+**Candidates from the audit, not ordered yet**
+- `src/extensions/debug.ts` is unused and replaces `String.prototype.at`; four leftover `console.log`;
+  `BrowserAnimationsModule` is imported without being used; extra injections in `AppComponent`;
+  Dexie tables are declared with the key type `number` while ids are strings (25 `as any`);
+  the PWA icons and favicon are Angular's, the manifest colors are Angular's blue; README is a
+  placeholder; no `.gitattributes` (line-ending warnings on every commit); no linter.
+
 ## 1. Finish the model
 
 - Kinds of fields: `normal`, `readonly`, `tip`; the `name:kind` syntax in `mkdir`

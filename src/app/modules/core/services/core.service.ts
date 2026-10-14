@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
-import { Dir } from '../models/dir.model';
+import { Directory } from '../../database/services/db';
 import { CardSPEC } from '../models/spec.model';
 
 @Injectable({
@@ -118,7 +118,7 @@ export class CoreService {
    * @param path
    * @returns
    */
-  public async lsdir(dirId: string, page: number): Promise<Dir[]> {
+  public async lsdir(dirId: string, page: number): Promise<Directory[]> {
     console.log('DIRID:', dirId);
     const rows = await this.db.get.dirByOwner(dirId);
 

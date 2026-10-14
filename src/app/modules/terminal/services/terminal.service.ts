@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
-import { Dir } from '../../core/models/dir.model';
+import { Directory as Dir } from '../../database/services/db';
 
 @Injectable({
   providedIn: 'root',
