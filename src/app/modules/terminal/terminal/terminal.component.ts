@@ -1,11 +1,14 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { CoreService } from '../../core/services/core.service';
-import { DebugService } from '../../debug/services/debug.service';
-import { ThemeService } from '../../core/services/theme.service';
-import { DoctorService } from '../../debug/services/doctor.service';
-import { Command } from '../models/command.model';
-import { TerminalService } from '../services/terminal.service';
-import { helpMessage } from './messeges';
+import { Output } from '../commands/command';
+import { ShellService } from '../services/shell.service';
+
+interface Line {
+  kind: 'cmd' | 'out' | 'err';
+  text: string;
+}
+
+/** the screen keeps this many lines, older ones are dropped */
+const MAX_LINES = 1000;
 
 @Component({
   selector: 'app-terminal',
@@ -14,311 +17,135 @@ import { helpMessage } from './messeges';
 })
 export class TerminalComponent {
   /**
-   * A help message
+   * The view of the terminal: shows what happened and takes input.
+   * It knows nothing about commands, ShellService runs them
+   *
+   * State, kept apart instead of one big text:
+   * · lines   - everything printed so far
+   * · input   - what is being typed right now
+   * · history - commands entered before, for ↑ and ↓
    */
-  public helpMessage = {
-    status: 200,
-    data: helpMessage,
-  };
+  public lines: Line[] = [];
+  public input = '';
+  public busy = false;
+
+  private queue: string[] = [];
+  private history: string[] = [];
+  private historyIndex = 0;
+  /** what was typed before browsing history, to come back to it with ↓ */
+  private draft = '';
+
+  @ViewChild('inputRef') inputRef!: ElementRef<HTMLInputElement>;
+  @ViewChild('screen') screen!: ElementRef<HTMLElement>;
+
+  constructor(private shell: ShellService) {}
 
   /**
-   * ngModel that tracks value kept in terminal
-   */
-  public terminalModel: string = '';
-
-  /**
-   * A welcoming message
    * looks like
    * ╭─axl@memos /
    * ╰─$
    */
-  public get terminalWelcomeMsg(): string {
-    return '╭─axl@memos ' + this.terminal.pwd().data + '\n╰─$ ';
+  public get promptTop(): string {
+    return '╭─axl@memos ' + this.shell.terminal.pwd();
   }
-
-  @ViewChild('terminalRef') terminalRef!: ElementRef;
-
-  constructor(
-    private terminal: TerminalService,
-    private core: CoreService,
-    private debug: DebugService,
-    private doctorService: DoctorService,
-    private themeService: ThemeService
-  ) {}
 
   public ngAfterViewInit() {
-    this.clearTerminal();
-    console.log(this.terminalRef);
-    let element: any = this.terminalRef;
-    element.nativeElement.addEventListener('click', () => {
-      element.nativeElement.focus();
-      element.nativeElement.setSelectionRange(
-        element.nativeElement.value.length,
-        element.nativeElement.value.length
-      );
-    });
+    this.focus();
+  }
+
+  public focus() {
+    this.inputRef?.nativeElement.focus();
   }
 
   /**
-   * Type on terminal event
-   * @param value
+   * Where commands print to
    */
-  public type(value: string) {
-    setTimeout(() => {
-      this.middleware();
-    });
-  }
-
-  /**
-   * Output message to terminal
-   * @param value
-   */
-  public output(value: string) {
-    console.log('OUTPUTTING: ', value);
-    setTimeout(() => {
-      this.terminalModel += value;
-    });
-  }
-
-  /**
-   * A tuple of available commands, such as help and cd
-   */
-  public availableCommands: any = {
-    help: () => this.helpMessage,
-    cd: (args: string[]) => this.cd(args[0]),
-    mkdir: (args: string[]) => this.mkdir(args),
-    touch: (args: string[]) => this.touch(args),
-    lsdir: (args: string) => this.lsdir(args),
-    ls: (args: string[]) => this.ls(args),
-    dir: (args: string) => this.lsdir(args),
-    lsd: (args: string) => this.lsdir(args),
-    drop: (args: string) => this.drop(args),
-    clear: () => this.clearTerminal(),
-    rmdir: (args: string[]) => this.rmdir(args),
-    pwd: () => this.terminal.pwd(),
-    test: (args: string[]) => this.test(args),
-    doctor: (args: string[]) => this.doctor(args),
-    theme: (args: string[]) => this.theme(args),
-    '': () => {
-      return {
-        status: 200,
-        data: '',
-      };
-    },
+  private output: Output = {
+    out: (text) => this.print('out', text),
+    err: (text) => this.print('err', '(!) ' + text),
+    clear: () => (this.lines = []),
   };
 
-  /**
-   * Self-test of the core (see DebugService.selfTest)
-   * `test` runs the scenario, `test clean` removes leftovers of a crashed run
-   * @param args
-   */
-  public async test(args: string[]) {
-    const report =
-      args.at(0) === 'clean'
-        ? await this.debug.cleanTest()
-        : await this.debug.selfTest();
-    this.terminalModel = this.terminalModel.replace('⠀', () => report);
-    return { status: 'pending' };
+  private print(kind: Line['kind'], text: string) {
+    this.lines.push({ kind, text });
+    if (this.lines.length > MAX_LINES) this.lines.splice(0, this.lines.length - MAX_LINES);
+    this.scrollDown();
   }
 
   /**
-   * Switch the color theme
-   * @param args dark | light, without arguments shows the current theme
+   * Enter: run what is typed
    */
-  public theme(args: string[]) {
-    const name = args.at(0);
-    if (name === undefined)
-      return { status: 200, data: `Theme: ${this.themeService.current}` };
-    if (!this.themeService.isTheme(name))
-      return { status: 200, data: 'Usage: theme [dark|light]' };
-    this.themeService.set(name);
-    return { status: 200, data: `Theme: ${name}` };
-  }
+  public async submit() {
+    const line = this.input;
+    this.input = '';
+    if (line.trim() !== '' && this.history.at(-1) !== line) this.history.push(line);
+    this.historyIndex = this.history.length;
+    this.draft = '';
 
-  /**
-   * Look for directories and cards hanging without a parent
-   * `doctor` only reports, `doctor fix` moves them to /lost+found
-   * @param args [fix]
-   */
-  public doctor(args: string[]) {
-    const arg = args.at(0);
-    if (arg !== undefined && arg !== 'fix')
-      return { status: 200, data: 'Usage: doctor [fix]' };
-    return this.runDoctor(arg === 'fix');
-  }
-
-  private async runDoctor(fix: boolean) {
-    const report = await this.doctorService.run(fix);
-    this.terminalModel = this.terminalModel.replace('⠀', () => report);
-    return { status: 'pending' };
-  }
-
-  public async ls(args: string[]) {
-    let res: any = await this.terminal.ls(0);
-    console.log('RES: ', res);
-    this.terminalModel = this.terminalModel.replace('⠀', res);
-  }
-
-  /**
-   * List directories
-   * @param args page: number (0,1...)
-   */
-  public async lsdir(args: string) {
-    const page: number = Number(args.at(0));
-    let res: any = await this.terminal.lsdir(page);
-    console.log('RES: ', res);
-    this.terminalModel = this.terminalModel.replace('⠀', res.data);
-    return { status: 'pending' };
-  }
-
-  /**
-   * Remove directory by id together with all its content
-   * (nested directories and cards)
-   * @param args [id]
-   */
-  public rmdir(args: string[]) {
-    const id = args.at(0);
-    if (!id) return { status: 200, data: 'Usage: rmdir <id> (see ids in lsdir)' };
-    return this.runRmdir(id);
-  }
-
-  private async runRmdir(id: string) {
-    const removed = await this.core.removeDir(id);
-    const message =
-      removed > 0
-        ? `Removed ${removed} director${removed === 1 ? 'y' : 'ies'} with all cards`
-        : 'Directory does not exist';
-    this.terminalModel = this.terminalModel.replace('⠀', () => message);
-    return { status: 'pending' };
-  }
-  /**
-   * Erase database
-   * @param args
-   */
-  public async drop(args: string) {
-    this.core.drop();
-  }
-
-  /**
-   * Create file (card)
-   * @param args
-   * #TODO: сделай так, чтобы из терминала можно было создавать карточки с пробелами
-   */
-  public touch(args: string[]) {
-    console.log('ARGS', args);
-    const content = args;
-    const owner = this.terminal.getCDI();
-    this.core.touch(content, owner);
-    return { status: 200 };
-  }
-
-  /**
-   * Run make directory sequence
-   * @param args of dir icon, title, sides
-   */
-  public mkdir(args: any) {
-    const icon = args.at(0);
-    const title = args.at(1);
-    const sides = args.slice(2);
-    if (!icon || !title)
-      return { status: 200, data: 'Usage: mkdir <icon> <title> <sides...>' };
-    return this.runMkdir(icon, title, sides);
-  }
-
-  private async runMkdir(icon: string, title: string, sides: string[]) {
-    let message = '';
-    try {
-      await this.core.mkdir(this.terminal.getCDI(), icon, title, sides);
-    } catch (e: any) {
-      message = '(!) ' + (e?.message ?? 'Could not create directory');
-    }
-    this.terminalModel = this.terminalModel.replace('⠀', () => message);
-    return { status: 'pending' };
-  }
-  /**
-   * Change directory
-   * Check if dir exists: ✅
-   * @param path
-   */
-  public cd(id: string) {
-    const status = this.terminal.cd(id);
-    return status;
-  }
-
-  /**
-   * Run terminal commands that are available in the list
-   * @param command
-   * @returns
-   */
-  public runCommand(command: Command): string {
-    const cmd = command.split(' ').at(0);
     /**
-     * ARGS - arguments of the terminal command, for example: mkdir X French (X and French are arguments,
-     * would be [X,French])
+     * Typing ahead while a command is running is fine:
+     * the lines wait in the queue and run one after another, as in a shell
      */
-    const args: any = command.split(' ').slice(1);
-    let result;
+    this.queue.push(line);
+    if (this.busy) return;
 
-    console.log(cmd, args);
-    this.availableCommands[cmd]
-      ? (result = this.availableCommands[cmd](args))
-      : (result = { status: 400, info: 'Command not found' });
+    this.busy = true;
+    try {
+      while (this.queue.length > 0) {
+        const next = this.queue.shift() as string;
+        this.print('cmd', `${this.promptTop}\n╰─$ ${next}`);
+        await this.shell.run(next, this.output);
+      }
+    } finally {
+      this.busy = false;
+      this.scrollDown();
+    }
+  }
 
-    if (result.hasOwnProperty('status') && result.status !== 200)
-      return '(!) ' + result.info;
+  public async onKeydown(event: KeyboardEvent) {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.browseHistory(-1);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.browseHistory(1);
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      await this.complete();
+    } else if (event.key === 'l' && event.ctrlKey) {
+      event.preventDefault();
+      this.lines = [];
+    }
+  }
 
-    /** Async detected */
-    if (typeof result === 'object' && !result.hasOwnProperty('status'))
-      return '⠀';
-
-    if (result.status === 200) return result.data ? result.data : '';
-    return '(!) There has been unexpected error';
+  private browseHistory(step: number) {
+    const next = this.historyIndex + step;
+    if (next < 0 || next > this.history.length) return;
+    if (this.historyIndex === this.history.length) this.draft = this.input;
+    this.historyIndex = next;
+    this.input = next === this.history.length ? this.draft : this.history[next];
   }
 
   /**
-   * Clear terminal command
+   * Tab: complete the command or the last word.
+   * When there are several options, show them under the line, like a shell does
    */
-  public clearTerminal() {
+  private async complete() {
+    const typed = this.input;
+    const { buffer, options } = await this.shell.complete(typed);
+    /** the line changed while we were looking (Enter, more typing): the result is stale */
+    if (this.input !== typed) return;
+    if (options.length > 1) {
+      this.print('cmd', `${this.promptTop}\n╰─$ ${typed}`);
+      this.print('out', options.join('  '));
+    }
+    this.input = buffer;
+  }
+
+  private scrollDown() {
     setTimeout(() => {
-      this.terminalModel = this.terminalWelcomeMsg;
+      const element = this.screen?.nativeElement;
+      if (element) element.scrollTop = element.scrollHeight;
     });
-  }
-
-  /**
-   * Should run on backspace clearing welcoming message
-   */
-  public formatTerminal() {
-    this.terminalModel = this.terminalWelcomeMsg;
-  }
-
-  /**
-   * Trigger event on Enter press preparing a command for runCommand method
-   */
-  public emitTerminal() {
-    setTimeout(() => {
-      this.terminalModel += this.runCommand(
-        this.terminalModel
-          .split('\n')
-          .at(-2)
-          ?.replaceAll('╰─$', '')
-          .replace(' ', '') as Command
-      );
-
-      this.terminalModel += '\n' + this.terminalWelcomeMsg;
-    });
-  }
-
-  /**
-   * Run between ivoke event and output trigger
-   * to format the content of terminal in case
-   * of deleting importent content such as pwd
-   * because: #TODO
-   */
-  public middleware() {
-    this.terminalModel.length < 3 ? this.formatTerminal() : '';
-    this.terminalModel.split('\n').at(-1) === '' ? this.emitTerminal() : '';
-    this.terminalModel.split('\n').at(-1) === '╰─$'
-      ? (this.terminalModel += ' ')
-      : '';
   }
 }

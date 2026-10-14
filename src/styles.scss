@@ -4,11 +4,13 @@
 :root {
   --bg: #ffffff;
   --fg: #000000;
+  --err: #c62828;
   color-scheme: light;
 }
 :root[data-theme="dark"] {
   --bg: #1e1e1e;
   --fg: #d4d4d4;
+  --err: #f47067;
   color-scheme: dark;
 }
 

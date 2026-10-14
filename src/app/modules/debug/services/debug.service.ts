@@ -3,6 +3,9 @@ import { CoreService } from '../../core/services/core.service';
 import { db } from '../../database/services/db';
 import { MathService } from '../../math/services/math.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { COMMANDS } from '../../terminal/commands';
+import { TerminalService } from '../../terminal/services/terminal.service';
+import { tokenize } from '../../terminal/services/tokenizer';
 import { DoctorService } from './doctor.service';
 
 /**
@@ -24,13 +27,18 @@ export class DebugService {
     private core: CoreService,
     private doctor: DoctorService,
     private math: MathService,
-    private theme: ThemeService
+    private theme: ThemeService,
+    private terminal: TerminalService
   ) {}
 
   /**
    * Run the full scenario and return a printable report
+   * @param capture runs a command line like the terminal does and returns what it printed,
+   * without it the terminal scenario is skipped
    */
-  public async selfTest(): Promise<string> {
+  public async selfTest(
+    capture?: (line: string) => Promise<{ out: string; err: string }>
+  ): Promise<string> {
     const lines: string[] = [];
     let passed = 0;
     let failed = 0;
@@ -70,8 +78,54 @@ export class DebugService {
      * Root of the uniqueness and ids scenario
      */
     let root3 = '';
+    /**
+     * Root of the terminal scenario, and where the user was before it
+     */
+    let root4 = '';
+    const userPath = this.terminal.getPath();
 
     try {
+      /**
+       * TOKENIZER: splitting a command line into words
+       */
+      const cases: [string, string[] | 'error'][] = [
+        ['mkdir 🇫🇷 French A B', ['mkdir', '🇫🇷', 'French', 'A', 'B']],
+        ['touch "Un chat" "A cat"', ['touch', 'Un chat', 'A cat']],
+        ["touch l'ami friend", ['touch', "l'ami", 'friend']],
+        ["touch 'l'ami' friend", ['touch', "l'ami", 'friend']],
+        ['touch "say \\"hi\\""', ['touch', 'say "hi"']],
+        ['touch "" x', ['touch', '', 'x']],
+        ['touch a\\ b', ['touch', 'a b']],
+        ['  ls   ', ['ls']],
+        ['', []],
+        ['touch "Un chat', 'error'],
+      ];
+      const badCases = cases.filter(([line, expected]) => {
+        try {
+          return JSON.stringify(tokenize(line)) !== JSON.stringify(expected);
+        } catch {
+          return expected !== 'error';
+        }
+      });
+      check(
+        'tokenizer: quotes, apostrophes, escapes and empty words',
+        badCases.length === 0,
+        badCases.map(([line]) => line).join(' | ')
+      );
+
+      /**
+       * REGISTRY: every command is callable and described
+       */
+      const names = COMMANDS.flatMap((command) => [command.name, ...(command.aliases ?? [])]);
+      check(
+        'registry: names and aliases are unique',
+        new Set(names).size === names.length,
+        names.join()
+      );
+      check(
+        'registry: every command has usage and description',
+        COMMANDS.every((command) => command.usage.startsWith(command.name) && command.description)
+      );
       /**
        * THEME: switch both ways, then put the user's theme back
        */
@@ -248,6 +302,87 @@ export class DebugService {
       );
 
       /**
+       * TERMINAL: whole command lines, through the tokenizer and the registry,
+       * exactly as typed. Runs in root, the user's directory is put back at the end
+       */
+      if (capture) {
+        const run = async (line: string) => (await capture(line)) ?? { out: '', err: '' };
+
+        await run('cd /');
+        const made = await run(`mkdir 🧪 ${TEST_TITLE} Front Back`);
+        check('terminal: mkdir prints nothing on success', made.out === '' && made.err === '', JSON.stringify(made));
+        root4 = (await this.core.lsdir('/', 0)).find((dir) => dir.title === TEST_TITLE)?.id ?? '';
+
+        await run(`cd ${TEST_TITLE}`);
+        await run('mkdir 📁 "Sub Dir" Q A');
+        await run('cd "Sub Dir"');
+        const where = (await run('pwd')).out;
+        check('terminal: cd into a name with spaces (quotes)', where === `/${TEST_TITLE}/Sub Dir`, where);
+
+        await run('touch "Un chat" "A cat"');
+        const listed = (await run('ls')).out;
+        check(
+          'terminal: touch keeps quoted sides with spaces as single sides',
+          listed.includes('[Un chat,A cat]'),
+          listed
+        );
+
+        await run('cd ../..');
+        check('terminal: cd ../.. goes up two levels', (await run('pwd')).out === '/');
+        await run(`cd "/${TEST_TITLE}/Sub Dir"`);
+        check(
+          'terminal: cd by absolute path',
+          (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`
+        );
+        await run('cd /');
+        await run(`cd ${TEST_TITLE}/Sub\\ Dir`);
+        check(
+          'terminal: cd by relative path with several parts',
+          (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`
+        );
+
+        const lost = await run('cd nowhere');
+        check(
+          'terminal: cd into a missing directory is an error and stays in place',
+          lost.err.includes('does not exist') && (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`,
+          lost.err
+        );
+        check(
+          'terminal: unknown command is an error',
+          (await run('frobnicate')).err.includes('not found')
+        );
+        check('terminal: unclosed quote is an error', (await run('touch "a')).err.includes('quote'));
+
+        await run('cd /');
+        const rootTouch = await run('touch x y');
+        check(
+          'terminal: touch in root says why it refused',
+          rootTouch.err.includes('root'),
+          rootTouch.err
+        );
+
+        const helpText = (await run('help')).out;
+        check(
+          'terminal: help lists every command from the registry',
+          COMMANDS.every((command) => helpText.includes(command.usage)),
+          COMMANDS.filter((command) => !helpText.includes(command.usage)).map((c) => c.name).join()
+        );
+
+        /** remove the tree while standing inside it: the session has to step out */
+        await run(`cd "/${TEST_TITLE}/Sub Dir"`);
+        const removedOut = (await run(`rmdir ${root4}`)).out;
+        check(
+          'terminal: rmdir removes the whole tree',
+          removedOut.includes('Removed 2'),
+          removedOut
+        );
+        check(
+          'terminal: after rmdir of the current directory the session steps out',
+          (await run('pwd')).out === '/'
+        );
+      }
+
+      /**
        * UNIQUE TITLES
        */
       root3 = String(await this.core.mkdir('/', '🧪', TEST_TITLE, []));
@@ -283,6 +418,21 @@ export class DebugService {
         rejectedRoot = e?.message ?? 'error';
       }
       check('mkdir: refuses a duplicate title in root too', rejectedRoot !== '');
+
+      const badTitles: string[] = [];
+      for (const title of ['..', '.', '', 'a/b']) {
+        try {
+          await this.core.mkdir(root3, '📁', title, []);
+          badTitles.push(JSON.stringify(title));
+        } catch {
+          /** expected */
+        }
+      }
+      check(
+        'mkdir: refuses titles that can not be used in a path',
+        badTitles.length === 0,
+        `accepted: ${badTitles.join()}`
+      );
 
       /**
        * ID COLLISIONS: force makeId to return ids that are already taken
@@ -331,8 +481,11 @@ export class DebugService {
       /**
        * CLEANUP: always, even when something above has failed
        */
-      await this.purge([root, a, b, deep, root2, stray, root3].filter((id) => id !== ''));
+      await this.purge([root, a, b, deep, root2, stray, root3, root4].filter((id) => id !== ''));
       await db.card.bulkDelete(strayCards as any);
+      /** the terminal scenario moved around: put the user back where they were */
+      this.terminal.setPath(userPath);
+      await this.terminal.revalidate();
       const lostFoundId = await this.doctor.findLostFound();
       if (lostFoundIsOurs && lostFoundId !== null) {
         const inside =

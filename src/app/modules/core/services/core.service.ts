@@ -40,6 +40,12 @@ export class CoreService {
      */
 
     /**
+     * A title has to be usable in a path: cd French/Verbs
+     */
+    if (title === '' || title === '.' || title === '..' || title.includes('/'))
+      throw new Error(`Title "${title}" is not allowed: it can not be empty, . or .. or contain /`);
+
+    /**
      * A title is unique within its directory: cd and rmdir find directories by it
      */
     if ((await this.db.get.dirByOwnerAndTitle(owner, title)) !== undefined)

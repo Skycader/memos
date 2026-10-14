@@ -1,7 +1,21 @@
-<div class="terminal">
-  <textarea
-    #terminalRef
-    [(ngModel)]="terminalModel"
-    (ngModelChange)="type($event)"
-  ></textarea>
+<div class="terminal" #screen (click)="focus()">
+  <pre *ngFor="let line of lines" class="line" [class.err]="line.kind === 'err'">{{ line.text }}</pre>
+
+  <div class="prompt">
+    <pre class="line">{{ promptTop }}</pre>
+    <label class="input-row">
+      <pre class="line">╰─$ </pre>
+      <input
+        #inputRef
+        class="input"
+        type="text"
+        spellcheck="false"
+        autocomplete="off"
+        autocapitalize="off"
+        [(ngModel)]="input"
+        (keydown.enter)="submit()"
+        (keydown)="onKeydown($event)"
+      />
+    </label>
+  </div>
 </div>

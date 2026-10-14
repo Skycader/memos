@@ -4,3 +4,5 @@ Memos is now rewritten in Angular 17 with absolutely new awesome architecture
 underneath.
 
 Expect release **soon**.
+
+Docs: [docs/](docs/README.md)
