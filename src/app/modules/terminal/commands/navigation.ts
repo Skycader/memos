@@ -6,11 +6,17 @@ export const cd: TerminalCommand = {
   group: 'navigation',
   usage: 'cd <path>',
   description: 'go to a directory',
-  notes: [
-    'A path is a name, .., / or several of them: French, .., /, French/Verbs, ../Spanish',
-    'Example: cd French',
-    'Example: cd "My French" (quotes for names with spaces)',
+  why:
+    'Directories hold cards. Every other command works on the directory you are in, ' +
+    'so cd is how you move around.',
+  examples: [
+    'cd French  # into French',
+    'cd French/Verbs  # several levels at once',
+    'cd ..  # one level up',
+    'cd /  # to the root',
+    'cd "My French"  # quotes for names with spaces',
   ],
+  notes: ['Tab completes directory names'],
   async run(args, ctx) {
     const target = args.at(0);
     if (target === undefined) throw new Error('Usage: cd <path>');
@@ -39,7 +45,9 @@ export const pwd: TerminalCommand = {
   name: 'pwd',
   group: 'navigation',
   usage: 'pwd',
-  description: 'display current path',
+  description: 'show the current path',
+  why: 'Shows where you are: the path of the current directory, from the root.',
+  examples: ['pwd'],
   run(args, ctx) {
     ctx.out(ctx.terminal.pwd());
   },
@@ -84,12 +92,19 @@ export const ls: TerminalCommand = {
   name: 'ls',
   group: 'navigation',
   usage: 'ls [d|c] [page]',
-  description: 'list directories and cards in the current directory',
+  description: 'list directories and cards here',
+  why:
+    'Shows what is in the current directory: directories and cards, with their ids ' +
+    '(rmdir needs an id).',
+  examples: [
+    'ls  # directories and cards',
+    'ls d  # only directories (ls -d works too)',
+    'ls c  # only cards (ls -c works too)',
+    'ls 2  # the second page',
+    'ls c 3  # the third page of cards',
+  ],
   notes: [
-    'ls d (or ls -d) - only directories',
-    'ls c (or ls -c) - only cards',
-    'ls 2 - the second page; a page holds 20 items, directories first, then cards',
-    'Example: ls c 3 - the third page of cards',
+    'A page holds 20 items, directories first, then cards; the last line says which page it is',
     'Output: DIR <id> <icon> <title> [sides] and CARD <id> ... sides [...]',
   ],
   async run(args, ctx) {

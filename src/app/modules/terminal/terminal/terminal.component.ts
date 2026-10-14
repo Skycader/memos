@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { Output } from '../commands/command';
 import { ShellService } from '../services/shell.service';
 
@@ -55,6 +55,28 @@ export class TerminalComponent {
 
   public focus() {
     this.inputRef?.nativeElement.focus();
+  }
+
+  /**
+   * A click on the screen puts the cursor back into the input, except when the user has just
+   * selected some text: focusing the input would drop their selection, and the text could
+   * not be copied
+   */
+  public onScreenClick() {
+    if (window.getSelection()?.toString()) return;
+    this.focus();
+  }
+
+  /**
+   * Typing while the input has no focus (for example after selecting text) goes to the input.
+   * Shortcuts such as Ctrl+C stay untouched, so a selection can be copied
+   */
+  @HostListener('document:keydown', ['$event'])
+  public onDocumentKeydown(event: KeyboardEvent) {
+    const input = this.inputRef?.nativeElement;
+    if (!input || event.target === input) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key.length === 1 || event.key === 'Backspace') input.focus();
   }
 
   /**

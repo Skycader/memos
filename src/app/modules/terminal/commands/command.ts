@@ -56,10 +56,18 @@ export interface TerminalCommand {
   aliases?: string[];
   /** how to call it: `mkdir <icon> <title> <sides...>` */
   usage: string;
+  /** one short line: it is shown in the list that plain `help` prints */
   description: string;
-  /** extra lines for help, examples and warnings */
+  /** what the command is for, in a sentence or two: shown by `help <command>` */
+  why: string;
+  /**
+   * Things to type, one per line; `# text` after two spaces explains it:
+   * `touch "Un chat" "A cat"  # quotes for sides with spaces`. Shown by `help <command>`
+   */
+  examples: string[];
+  /** rules, limits and warnings: shown by `help <command>` */
   notes?: string[];
-  /** commands of one group go together in help */
+  /** commands of one group go together in help (the titles are in the `help` command) */
   group: 'navigation' | 'edit' | 'data' | 'system' | 'diagnostics';
   /**
    * Run the command. Print with ctx.out / ctx.err, throw to report an error.

@@ -1,14 +1,16 @@
-<div class="terminal" #screen (click)="focus()">
+<div class="terminal" #screen (click)="onScreenClick()">
   <pre *ngFor="let line of lines" class="line" [class.err]="line.kind === 'err'">{{ line.text }}</pre>
 
   <div class="prompt">
     <pre class="line">{{ promptTop }}</pre>
-    <label class="input-row">
+    <!-- a div, not a label: a label hands the focus to the input on any click and drops a selection -->
+    <div class="input-row">
       <pre class="line">╰─$ </pre>
       <input
         #inputRef
         class="input"
         type="text"
+        aria-label="terminal input"
         spellcheck="false"
         autocomplete="off"
         autocapitalize="off"
@@ -16,6 +18,6 @@
         (keydown.enter)="submit()"
         (keydown)="onKeydown($event)"
       />
-    </label>
+    </div>
   </div>
 </div>

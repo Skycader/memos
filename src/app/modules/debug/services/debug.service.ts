@@ -127,8 +127,14 @@ export class DebugService {
         names.join()
       );
       check(
-        'registry: every command has usage and description',
-        COMMANDS.every((command) => command.usage.startsWith(command.name) && command.description)
+        'registry: every command has usage, description, why and examples',
+        COMMANDS.every(
+          (command) =>
+            command.usage.startsWith(command.name) &&
+            command.description &&
+            command.why &&
+            command.examples.length > 0
+        )
       );
       /**
        * THEME: switch both ways, then put the user's theme back
@@ -519,6 +525,7 @@ export class DebugService {
           (await tab('fo')) === 'font ' && (await tab('th')) === 'theme ',
           `${await tab('fo')} | ${await tab('th')}`
         );
+        check('tab: help completes the name of a command', (await tab('help to')) === 'help touch');
         check(
           'tab: lists the options when a name is ambiguous',
           (await tabOptions('d')).sort().join() === 'doctor,drop',
@@ -600,11 +607,107 @@ export class DebugService {
         );
 
         const helpText = (await run('help')).out;
+        const missingLine = (command: (typeof COMMANDS)[number]) =>
+          !helpText.includes(
+            `    · ${command.name} - ${command.description} (type help ${command.name} for more)`
+          );
         check(
-          'terminal: help lists every command from the registry',
-          COMMANDS.every((command) => helpText.includes(command.usage)),
-          COMMANDS.filter((command) => !helpText.includes(command.usage)).map((c) => c.name).join()
+          'help: one short line per command from the registry, grouped, no examples',
+          COMMANDS.every((command) => !missingLine(command)) &&
+            ['Navigation', 'Data manipulation', 'Import and export', 'System', 'Testing and diagnostics'].every(
+              (title) => helpText.split('\n').includes(` * ${title}`)
+            ) &&
+            !helpText.includes('Examples'),
+          COMMANDS.filter(missingLine).map((command) => command.name).join()
         );
+
+        const touchHelp = (await run('help touch')).out;
+        check(
+          'help touch: what it is for, examples and rules',
+          touchHelp.trim().startsWith('touch <sides...>') &&
+            touchHelp.includes('Why') &&
+            touchHelp.includes('Examples') &&
+            touchHelp.includes('touch "Un chat" "A cat"') &&
+            touchHelp.includes('Notes'),
+          touchHelp
+        );
+        const poor: string[] = [];
+        for (const command of COMMANDS) {
+          const text = (await run(`help ${command.name}`)).out;
+          if (!text.includes(command.usage) || !text.includes('Why') || !text.includes('Examples'))
+            poor.push(command.name);
+        }
+        check('help <command> works for every command in the registry', poor.length === 0, poor.join());
+        const stuck = (text: string) =>
+          text.split('\n').filter((line) => line !== '' && !line.startsWith(' '));
+        check(
+          'help: nothing sticks to the left edge: " * Title", then items as "    · item"',
+          stuck(helpText).length === 0 &&
+            stuck(touchHelp).length === 0 &&
+            helpText.includes('\n * Data manipulation\n\n') &&
+            helpText.includes('\n    · touch - create a card'),
+          [...stuck(helpText), ...stuck(touchHelp)].join(' | ')
+        );
+        check(
+          'help: an unknown command or too many words are errors',
+          (await run('help nosuch')).err.includes('No such command') &&
+            (await run('help a b')).err.includes('Usage: help')
+        );
+        check(
+          'help: ends with the Planned list and exactly one empty line before the next prompt',
+          helpText.endsWith(
+            ' * Planned (not implemented yet)\n\n' +
+              '    · touch ?"Un chat" "A cat" - make a side question only\n' +
+              '    · rmdir <dir name> - remove a directory by name\n\n'
+          ) &&
+            !helpText.endsWith('\n\n\n') &&
+            touchHelp.endsWith('\n\n') &&
+            !touchHelp.endsWith('\n\n\n'),
+          JSON.stringify(helpText.slice(-160))
+        );
+
+        /**
+         * The screen: selected text must stay selected, or it can not be copied
+         */
+        const screen = document.querySelector('.terminal') as HTMLElement | null;
+        const box = screen?.querySelector('input') as HTMLInputElement | null;
+        const written = Array.from(screen?.querySelectorAll('pre.line') ?? []).find(
+          (line) => (line.textContent ?? '').trim() !== ''
+        );
+        if (screen && box && written) {
+          const selection = window.getSelection() as Selection;
+          const click = () => screen.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          const press = (init: KeyboardEventInit) =>
+            document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init }));
+
+          selection.removeAllRanges();
+          const range = document.createRange();
+          range.selectNodeContents(written);
+          selection.addRange(range);
+          click();
+          const kept = selection.toString() !== '';
+
+          selection.removeAllRanges();
+          box.blur();
+          click();
+          const refocused = document.activeElement === box;
+
+          box.blur();
+          press({ key: 'a' });
+          const typingGoesToInput = document.activeElement === box;
+
+          box.blur();
+          press({ key: 'c', ctrlKey: true });
+          const shortcutUntouched = document.activeElement !== box;
+
+          selection.removeAllRanges();
+          box.focus();
+          check(
+            'screen: a click keeps a selection; with none it focuses the input; typing returns to the input, Ctrl+C is left alone',
+            kept && refocused && typingGoesToInput && shortcutUntouched,
+            `kept: ${kept}, click focuses: ${refocused}, typing: ${typingGoesToInput}, ctrl+c untouched: ${shortcutUntouched}`
+          );
+        }
 
         /** remove the tree while standing inside it: the session has to step out */
         await run(`cd "/${TEST_TITLE}/Sub Dir"`);

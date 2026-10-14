@@ -4,11 +4,18 @@ export const mkdir: TerminalCommand = {
   name: 'mkdir',
   group: 'edit',
   usage: 'mkdir <icon> <title> <sides...>',
-  description: 'create a directory in the current one',
+  description: 'create a directory',
+  why:
+    'A directory is a deck: it holds cards and other directories. The sides you name here ' +
+    'are the sides every card in it has, for example Original and Translation.',
+  examples: [
+    'mkdir 🇫🇷 French Original Translation  # two sides',
+    'mkdir 🇫🇷 "My French" Original Translation  # quotes for a title with spaces',
+    'mkdir 🎓 Words Original Transcription Translation  # three sides',
+  ],
   notes: [
+    'The directory is created in the current one (see pwd); use cd to choose where',
     'A title must be unique within its directory and can not contain /',
-    'Example: mkdir 🇫🇷 French Original Translation',
-    'Example: mkdir 🇫🇷 "My French" Original Translation',
   ],
   async run(args, ctx) {
     const [icon, title, ...sides] = args;
@@ -21,11 +28,18 @@ export const touch: TerminalCommand = {
   name: 'touch',
   group: 'edit',
   usage: 'touch <sides...>',
-  description: 'create a card in the current directory',
+  description: 'create a card',
+  why:
+    'A card is one thing to learn. Its sides are the values, for example a word and ' +
+    'its translation. touch puts a new card in the current directory.',
+  examples: [
+    'touch chat cat  # two sides',
+    'touch "Un chat" "A cat"  # quotes for sides with spaces',
+    'touch bonjour /bɔ̃ʒuʁ/ hello  # three sides, for a directory with three',
+  ],
   notes: [
-    'Example: touch chat cat',
-    'Example: touch "Un chat" "A cat" (quotes for sides with spaces)',
-    'Not allowed in root (/): create cards inside a directory',
+    'Give as many sides as the directory has (ls shows them in [brackets])',
+    'Not allowed in the root (/): cd into a directory first',
   ],
   async run(args, ctx) {
     if (args.length === 0) throw new Error('Usage: touch <sides...>');
@@ -40,10 +54,12 @@ export const rmdir: TerminalCommand = {
   name: 'rmdir',
   group: 'edit',
   usage: 'rmdir <id>',
-  description: 'remove a directory by id (see ids in ls)',
+  description: 'remove a directory with everything inside',
+  why: 'Gets rid of a directory you do not need, together with all its cards and sub-directories.',
+  examples: ['rmdir aB3x  # the id is shown by ls'],
   notes: [
-    'Example: rmdir aB3x',
-    'Removes everything inside too: subdirectories and cards, at any depth',
+    'Removes everything inside too, at any depth, in one go',
+    'There is no confirmation and no undo: export first if in doubt',
   ],
   async run(args, ctx) {
     const id = args.at(0);

@@ -52,6 +52,7 @@ It is meant for trying `ls` paging, `export` / `import`, and later `study` on so
 refuses to run twice in one directory and prints the id to give to `rmdir`. The data lives in
 `modules/debug/services/seed.service.ts`; to change the demo, edit the `DECKS` list there.
 `seed` is not the reserved `/__test__`: `test` does not touch it and does not clean it up.
+It sits in the help group "Testing and diagnostics" together with `test` and `doctor`.
 
 ## Karma (`ng test`): known broken
 
