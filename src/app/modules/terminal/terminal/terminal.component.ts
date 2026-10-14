@@ -203,8 +203,20 @@ export class TerminalComponent {
     const icon = args.at(0);
     const title = args.at(1);
     const sides = args.slice(2);
-    this.core.mkdir(this.terminal.getCDI(), icon, title, sides);
-    return { status: 200 };
+    if (!icon || !title)
+      return { status: 200, data: 'Usage: mkdir <icon> <title> <sides...>' };
+    return this.runMkdir(icon, title, sides);
+  }
+
+  private async runMkdir(icon: string, title: string, sides: string[]) {
+    let message = '';
+    try {
+      await this.core.mkdir(this.terminal.getCDI(), icon, title, sides);
+    } catch (e: any) {
+      message = '(!) ' + (e?.message ?? 'Could not create directory');
+    }
+    this.terminalModel = this.terminalModel.replace('⠀', () => message);
+    return { status: 'pending' };
   }
   /**
    * Change directory

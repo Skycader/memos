@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { db } from '../../database/services/db';
+import { MathService } from '../../math/services/math.service';
 import { DoctorService } from './doctor.service';
 
 /**
@@ -18,7 +19,11 @@ export class DebugService {
    * in the /__test__ directory, and cleans up after itself.
    * Triggered by the `test` terminal command.
    */
-  constructor(private core: CoreService, private doctor: DoctorService) {}
+  constructor(
+    private core: CoreService,
+    private doctor: DoctorService,
+    private math: MathService
+  ) {}
 
   /**
    * Run the full scenario and return a printable report
@@ -59,8 +64,26 @@ export class DebugService {
     let stray = '';
     let strayCards: string[] = [];
     let lostFoundIsOurs = false;
+    /**
+     * Root of the uniqueness and ids scenario
+     */
+    let root3 = '';
 
     try {
+      /**
+       * SCHEMA
+       */
+      const dirIndexes = db.directory.schema.indexes.map((index) => index.name);
+      const cardIndexes = db.card.schema.indexes.map((index) => index.name);
+      check(
+        'db: schema has [owner+title] and no indexes over arrays',
+        db.verno >= 2 &&
+          dirIndexes.includes('[owner+title]') &&
+          !dirIndexes.includes('fields') &&
+          !cardIndexes.includes('contents'),
+        `v${db.verno}, directory: [${dirIndexes}], card: [${cardIndexes}]`
+      );
+
       /**
        * STRUCTURE
        * /__test__
@@ -209,13 +232,92 @@ export class DebugService {
         !after.orphanDirs.some((dir) => dir.id === stray) &&
           !after.orphanCards.some((card) => strayCards.includes(card.id))
       );
+
+      /**
+       * UNIQUE TITLES
+       */
+      root3 = String(await this.core.mkdir('/', '🧪', TEST_TITLE, []));
+      const same = String(await this.core.mkdir(root3, '📁', 'same', []));
+      const other = String(await this.core.mkdir(root3, '📁', 'other', []));
+      const inner = String(await this.core.mkdir(other, '📁', 'same', []));
+      check(
+        'mkdir: the same title is fine in different directories',
+        same !== inner && (await db.directory.get(inner as any))?.owner === other
+      );
+
+      let rejected = '';
+      try {
+        await this.core.mkdir(root3, '📁', 'same', []);
+      } catch (e: any) {
+        rejected = e?.message ?? 'error';
+      }
+      const twins = await db.directory
+        .where('owner')
+        .equals(root3)
+        .filter((dir) => dir.title === 'same')
+        .count();
+      check(
+        'mkdir: refuses a duplicate title in the same directory',
+        rejected !== '' && twins === 1,
+        `${twins} dirs titled "same"`
+      );
+
+      let rejectedRoot = '';
+      try {
+        await this.core.mkdir('/', '🧪', TEST_TITLE, []);
+      } catch (e: any) {
+        rejectedRoot = e?.message ?? 'error';
+      }
+      check('mkdir: refuses a duplicate title in root too', rejectedRoot !== '');
+
+      /**
+       * ID COLLISIONS: force makeId to return ids that are already taken
+       * for the first attempts, the real ones are the 3rd one
+       */
+      await this.core.touch(['first', 'card'], same);
+      const firstCard = (await db.card.where('owner').equals(same).toArray())[0];
+      const real = this.math.makeId.bind(this.math);
+      let attempts = 0;
+      (this.math as any).makeId = (length: number) =>
+        ++attempts <= 2 ? root3 : real(length);
+      let collidedDir = '';
+      try {
+        collidedDir = String(await this.core.mkdir(root3, '📁', 'collide', []));
+      } finally {
+        delete (this.math as any).makeId;
+      }
+      check(
+        'ids: mkdir retries when the id is taken',
+        collidedDir !== '' &&
+          collidedDir !== root3 &&
+          attempts === 3 &&
+          (await db.directory.get(root3 as any))?.title === TEST_TITLE,
+        `attempts: ${attempts}, id: ${collidedDir}`
+      );
+
+      attempts = 0;
+      (this.math as any).makeId = (length: number) =>
+        ++attempts <= 2 ? firstCard.id : real(length);
+      try {
+        await this.core.touch(['second', 'card'], same);
+      } finally {
+        delete (this.math as any).makeId;
+      }
+      const cardsInSame = await db.card.where('owner').equals(same).toArray();
+      check(
+        'ids: touch retries when the id is taken',
+        cardsInSame.length === 2 &&
+          attempts === 3 &&
+          cardsInSame.some((card) => card.id === firstCard.id && card.contents[0] === 'first'),
+        `attempts: ${attempts}, cards: ${cardsInSame.length}`
+      );
     } catch (e: any) {
       check('unexpected error', false, e?.message ?? String(e));
     } finally {
       /**
        * CLEANUP: always, even when something above has failed
        */
-      await this.purge([root, a, b, deep, root2, stray].filter((id) => id !== ''));
+      await this.purge([root, a, b, deep, root2, stray, root3].filter((id) => id !== ''));
       await db.card.bulkDelete(strayCards as any);
       const lostFoundId = await this.doctor.findLostFound();
       if (lostFoundIsOurs && lostFoundId !== null) {

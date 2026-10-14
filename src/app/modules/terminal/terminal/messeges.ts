@@ -10,6 +10,7 @@ export const helpMessage = `
 
   · mkdir <icon> <title> <sides...> - create a directory in the current one
   ╰─ Arguments are split by spaces: title and sides are single words
+  ╰─ A title must be unique within its directory
   ╰─ Example: mkdir 🇫🇷 French Original Translation
 
   · cd <dir name> - go to a directory by name (current directory only)

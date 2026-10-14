@@ -40,10 +40,33 @@ export class CoreService {
      */
 
     /**
+     * A title is unique within its directory: cd and rmdir find directories by it
+     */
+    if ((await this.db.get.dirByOwnerAndTitle(owner, title)) !== undefined)
+      throw new Error(`Directory "${title}" already exists here`);
+
+    /**
      * TABLE STRUCTURE
      */
-    const id = this.math.makeId(4);
+    const id = await this.freeId('dir');
     return await this.db.add.dir(id, owner, icon, title, fields);
+  }
+
+  /**
+   * Make an id that is not taken yet
+   * (ids are random, so a collision is unlikely, but possible)
+   * @param kind table to look the id up in
+   */
+  private async freeId(kind: 'dir' | 'card'): Promise<string> {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const id = this.math.makeId(4);
+      const taken =
+        kind === 'dir'
+          ? await this.db.get.dirById(id)
+          : await this.db.get.cardById(id);
+      if (taken.length === 0) return id;
+    }
+    throw new Error(`Could not find a free ${kind} id`);
   }
 
   /**
@@ -80,7 +103,7 @@ export class CoreService {
      */
     const makeArrays = () => contents.map((item: string) => []);
     const spec: CardSPEC = { status: makeArrays() };
-    const id = this.math.makeId(4);
+    const id = await this.freeId('card');
     await this.db.add.card(id, owner, contents, Date.now(), Date.now(), spec);
   }
 
@@ -91,24 +114,15 @@ export class CoreService {
    */
   public async lsdir(dirId: string, page: number): Promise<Dir[]> {
     console.log('DIRID:', dirId);
-    let rows: any = await this.db.get.dirByOwner(dirId);
+    const rows = await this.db.get.dirByOwner(dirId);
 
-    const dirs = [];
-
-    rows = Array.from(rows);
-
-    for (let row of rows) {
-      let foundRows: any = await this.db.get.dirById(row.id);
-      dirs.push({
-        id: row.id,
-        owner: row.owner,
-        icon: row.icon,
-        title: row.title,
-        fields: row.fields,
-      });
-    }
-
-    return dirs;
+    return rows.map((row) => ({
+      id: row.id,
+      owner: row.owner,
+      icon: row.icon,
+      title: row.title,
+      fields: row.fields,
+    }));
   }
 
   /**

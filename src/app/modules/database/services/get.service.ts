@@ -26,6 +26,21 @@ export class GetService {
       .toArray();
   }
 
+  async cardById(id: string) {
+    return await db.card
+      .where({
+        id,
+      })
+      .toArray();
+  }
+
+  /**
+   * A directory with the given title inside the given owner, if any
+   */
+  async dirByOwnerAndTitle(owner: string, title: string) {
+    return await db.directory.where({ owner, title }).first();
+  }
+
   async cardsByOwner(owner: string, limit: number, offset: number) {
     return await db.card
       .where({
