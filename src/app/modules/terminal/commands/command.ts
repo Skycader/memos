@@ -1,4 +1,5 @@
 import { CoreService } from '../../core/services/core.service';
+import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { DebugService } from '../../debug/services/debug.service';
 import { DoctorService } from '../../debug/services/doctor.service';
@@ -24,6 +25,7 @@ export interface CommandContext extends Output {
   debug: DebugService;
   doctor: DoctorService;
   theme: ThemeService;
+  font: FontService;
   /** the registry, for help */
   commands: TerminalCommand[];
   /** run a command line and collect what it printed, used by the self-test */

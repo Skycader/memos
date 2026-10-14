@@ -2,7 +2,7 @@ import { TerminalCommand } from './command';
 import { doctor, test } from './diagnostics';
 import { mkdir, rmdir, touch } from './edit';
 import { cd, ls, lsdir, pwd } from './navigation';
-import { clear, drop, help, theme } from './system';
+import { clear, drop, font, help, theme } from './system';
 
 /**
  * The registry: every command of the terminal is listed here, once.
@@ -19,6 +19,7 @@ export const COMMANDS: TerminalCommand[] = [
   help,
   clear,
   theme,
+  font,
   drop,
   test,
   doctor,

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
+import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { DebugService } from '../../debug/services/debug.service';
 import { DoctorService } from '../../debug/services/doctor.service';
@@ -22,7 +23,8 @@ export class ShellService {
     private core: CoreService,
     private debug: DebugService,
     private doctor: DoctorService,
-    private theme: ThemeService
+    private theme: ThemeService,
+    private font: FontService
   ) {}
 
   /**
@@ -128,6 +130,7 @@ export class ShellService {
       debug: this.debug,
       doctor: this.doctor,
       theme: this.theme,
+      font: this.font,
       commands: COMMANDS,
       capture: (line) => this.capture(line),
     };

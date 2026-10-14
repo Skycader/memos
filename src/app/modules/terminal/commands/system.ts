@@ -1,3 +1,4 @@
+import { FONTS } from '../../core/services/font.service';
 import { TerminalCommand } from './command';
 
 /**
@@ -63,6 +64,28 @@ export const theme: TerminalCommand = {
   },
   async complete(partial) {
     return ['dark', 'light'].filter((name) => name.startsWith(partial));
+  },
+};
+
+export const font: TerminalCommand = {
+  name: 'font',
+  group: 'system',
+  usage: 'font <JetBrainsMono|default>',
+  description: 'switch the terminal font (remembered between sessions)',
+  notes: ['font - show the current font', 'default is the browser monospace font'],
+  run(args, ctx) {
+    const name = args.at(0);
+    if (name === undefined) {
+      ctx.out(`Font: ${ctx.font.current}`);
+      return;
+    }
+    const found = ctx.font.find(name);
+    if (!found) throw new Error(`Usage: font <${FONTS.join('|')}>`);
+    ctx.font.set(found);
+    ctx.out(`Font: ${found}`);
+  },
+  async complete(partial) {
+    return FONTS.filter((name) => name.toLowerCase().startsWith(partial.toLowerCase()));
   },
 };
 

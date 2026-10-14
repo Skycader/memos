@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
 import { db } from '../../database/services/db';
 import { MathService } from '../../math/services/math.service';
+import { FontService } from '../../core/services/font.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { COMMANDS } from '../../terminal/commands';
 import { TerminalService } from '../../terminal/services/terminal.service';
@@ -28,6 +29,7 @@ export class DebugService {
     private doctor: DoctorService,
     private math: MathService,
     private theme: ThemeService,
+    private font: FontService,
     private terminal: TerminalService
   ) {}
 
@@ -137,6 +139,37 @@ export class DebugService {
       const lightOk = attr() === 'light' && localStorage.getItem('memos.theme') === 'light';
       this.theme.set(userTheme);
       check('theme: dark and light are applied and remembered', darkOk && lightOk);
+
+      /**
+       * FONT: switch both ways, the font file must really load, then put the user's font back
+       */
+      const userFont = this.font.current;
+      const fontAttr = () => document.documentElement.getAttribute('data-font');
+      this.font.set('JetBrainsMono');
+      const jbApplied =
+        fontAttr() === 'JetBrainsMono' &&
+        localStorage.getItem('memos.font') === 'JetBrainsMono' &&
+        getComputedStyle(document.documentElement).getPropertyValue('--font').includes('JetBrains Mono');
+      let jbLoaded = false;
+      try {
+        jbLoaded = (await document.fonts.load('13px "JetBrains Mono"')).length > 0;
+      } catch {
+        /** the file could not be fetched */
+      }
+      this.font.set('default');
+      const defaultApplied =
+        fontAttr() === 'default' && localStorage.getItem('memos.font') === 'default';
+      this.font.set(userFont);
+      check(
+        'font: JetBrainsMono and default are applied and remembered',
+        jbApplied && defaultApplied,
+        `jb: ${jbApplied}, default: ${defaultApplied}`
+      );
+      check('font: the JetBrains Mono file loads', jbLoaded);
+      check(
+        'font: names are found ignoring case',
+        this.font.find('jetbrainsmono') === 'JetBrainsMono' && this.font.find('comic') === undefined
+      );
 
       /**
        * SCHEMA

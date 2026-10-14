@@ -14,6 +14,22 @@
   color-scheme: dark;
 }
 
+/* Fonts of the terminal, switched by the `font` command (data-font on <html>).
+   The file is fetched only when a rule below actually uses it */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/JetBrainsMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --font: monospace;
+}
+:root[data-font="JetBrainsMono"] {
+  --font: "JetBrains Mono", monospace;
+}
+
 html,
 body {
   width: 100%;

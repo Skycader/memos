@@ -50,5 +50,9 @@ Indexes over arrays (`fields`, `contents`) were dropped in v2: they were never s
 
 ## Settings
 
-The color theme is the only setting. It is kept in `localStorage` (`memos.theme`), not in
-the database, so `drop` does not reset it. See `core/services/theme.service.ts`.
+The color theme (`memos.theme`) and the terminal font (`memos.font`) are the only settings.
+They are kept in `localStorage`, not in the database, so `drop` does not reset them.
+Both work the same way: a `data-theme` / `data-font` attribute on `<html>` switches CSS
+variables in `styles.scss`. See `core/services/theme.service.ts` and `font.service.ts`.
+The font files live in `src/assets/fonts` (with a note about their license) and are fetched
+only when a font that needs them is chosen.
