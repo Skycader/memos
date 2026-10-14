@@ -137,6 +137,25 @@ Notes for when it is built:
   `db drop`. Probably `drop` stays as "wipe the current database" under its own name, or goes away
   once `db` exists; to be decided when `db` is built.
 
+### `ls` with emoji instead of words
+
+The author's taste: emoji are read by the brain at once, so in the `ls` output
+
+```
+DIR  -> 📁
+CARD -> 📄
+```
+
+(the directory's own icon, the one set by `mkdir`, is shown next to the title today; this would
+replace the word `DIR`/`CARD` at the start of the line, not that icon). Not started, the author is not
+ready to take it in yet. Things to think about when it is built:
+
+- Emoji are wider than letters in a monospace font and differ between systems, so the columns
+  (ids, titles, sides) may need fixed padding to stay aligned.
+- It is a matter of taste: maybe a setting (`style emoji|plain`, remembered like the theme and the
+  font) so the plain `DIR`/`CARD` look, which the author also likes ("hacker style"), stays available.
+- Related idea: color the output (`DIR` and `CARD` in different colors, from the theme variables).
+
 ## Standing rules
 
 - Core first, shell second: new features start in `core`, the terminal only calls them.
