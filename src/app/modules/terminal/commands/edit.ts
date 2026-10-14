@@ -40,14 +40,14 @@ export const rmdir: TerminalCommand = {
   name: 'rmdir',
   group: 'edit',
   usage: 'rmdir <id>',
-  description: 'remove a directory by id (see ids in lsdir)',
+  description: 'remove a directory by id (see ids in ls)',
   notes: [
     'Example: rmdir aB3x',
     'Removes everything inside too: subdirectories and cards, at any depth',
   ],
   async run(args, ctx) {
     const id = args.at(0);
-    if (!id) throw new Error('Usage: rmdir <id> (see ids in lsdir)');
+    if (!id) throw new Error('Usage: rmdir <id> (see ids in ls)');
     const removed = await ctx.core.removeDir(id);
     if (removed === 0) throw new Error('Directory does not exist');
     /** we may have just removed the directory we are standing in */

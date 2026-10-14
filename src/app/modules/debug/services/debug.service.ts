@@ -350,6 +350,38 @@ export class DebugService {
 
         await run(`cd ${TEST_TITLE}`);
         await run('mkdir 📁 "Sub Dir" Q A');
+
+        /** ls: directories and cards together, or only one kind */
+        await run('touch top side');
+        const lsAll = (await run('ls')).out;
+        const lsDirs = (await run('ls d')).out;
+        const lsCards = (await run('ls c')).out;
+        const hasDir = (text: string) => text.includes('DIR ') && text.includes('Sub Dir');
+        const hasCard = (text: string) => text.includes('CARD ') && text.includes('[top,side]');
+        check('ls: shows directories and cards', hasDir(lsAll) && hasCard(lsAll), lsAll);
+        check(
+          'ls d and ls -d: only directories',
+          hasDir(lsDirs) && !hasCard(lsDirs) && (await run('ls -d')).out === lsDirs,
+          lsDirs
+        );
+        check(
+          'ls c and ls -c: only cards',
+          hasCard(lsCards) && !hasDir(lsCards) && (await run('ls -c')).out === lsCards,
+          lsCards
+        );
+        check(
+          'ls: both letters mean both kinds, anything else is an error',
+          (await run('ls dc')).out === lsAll &&
+            (await run('ls -dc')).out === lsAll &&
+            (await run('ls x')).err.includes('Usage: ls') &&
+            (await run('ls -')).err.includes('Usage: ls')
+        );
+        check(
+          'lsd is gone, lsdir and dir still work',
+          (await run('lsd')).err.includes('not found') &&
+            (await run('lsdir')).out === lsDirs &&
+            (await run('dir')).out === lsDirs
+        );
         /** Tab completion, with the directories created above next to us */
         const tab = async (typed: string) => (await shell.complete(typed)).buffer;
         const tabOptions = async (typed: string) => (await shell.complete(typed)).options;

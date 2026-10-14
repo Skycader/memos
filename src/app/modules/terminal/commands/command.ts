@@ -49,7 +49,7 @@ export interface CommandContext extends Output, ShellRunner {
 
 export interface TerminalCommand {
   name: string;
-  /** other names of the same command, for example lsd and dir for lsdir */
+  /** other names of the same command, for example dir for lsdir */
   aliases?: string[];
   /** how to call it: `mkdir <icon> <title> <sides...>` */
   usage: string;
