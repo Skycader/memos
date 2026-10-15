@@ -1,119 +1,88 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
-import { Card } from '../../database/services/db';
+import { Directory as Dir } from '../../database/services/db';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TerminalService {
   /**
-   * Unix like terminal commands interface API
-   * Callable from components (both terminal.component.ts and any other, such as GUI)
-   */
-
-  /**
-   * Current Directory ID
+   * Terminal session: where the user currently is
+   * Callable from the shell and from anything else, such as a GUI
+   *
+   * The path is a list of directories from the root down to the current one.
+   * Nothing is cached: directories are looked up in the database when needed,
+   * so the session never sees stale data
    */
   private path: Dir[] = [];
-  private dirsInPWD: Dir[] = [];
-  constructor(private core: CoreService) {
-    this.cacheDirsInWd();
+
+  constructor(private core: CoreService) {}
+
+  public getPath(): Dir[] {
+    return [...this.path];
   }
 
-  public async cacheDirsInWd() {
-    let dirs = await this.core.lsdir(this.getCDI(), 0);
-    this.dirsInPWD = dirs;
+  public setPath(path: Dir[]) {
+    this.path = [...path];
   }
 
+  /**
+   * Current Directory ID, '/' for the root
+   */
   public getCDI(): string {
-    let output = this.path.at(-1)?.id;
-    if (output) return output;
-    return '/';
+    return this.path.at(-1)?.id ?? '/';
   }
 
-  public cd(name: string) {
-    const dirs: Dir[] = this.dirsInPWD;
+  public pwd(): string {
+    return '/' + this.path.map((dir) => dir.title).join('/');
+  }
 
-    const getDirByTitle = (dirs: Dir[], title: string) =>
-      dirs.find((dir: Dir) => dir.title === title);
+  /**
+   * Find where a path leads without going there
+   * @param from directory to start from
+   * @param target `French`, `..`, `/`, `French/Verbs`, `/French`, `../Spanish`; any name
+   * in it can be the id of a directory instead (`4a3x`, `French/4a3x`)
+   * @throws Error if some part of the path does not exist
+   */
+  public async resolve(from: Dir[], target: string): Promise<Dir[]> {
+    const path = target.startsWith('/') ? [] : [...from];
 
-    const processId = (dir: Dir | undefined) =>
-      dir !== undefined ? dir : null;
-
-    const processedDir = processId(getDirByTitle(dirs, name));
-    if (name === '..') {
-      this.path.pop();
-      return { status: 200 };
+    for (const segment of target.split('/')) {
+      if (segment === '' || segment === '.') continue;
+      if (segment === '..') {
+        path.pop();
+        continue;
+      }
+      const owner = path.at(-1)?.id ?? '/';
+      const dirs = await this.core.lsdir(owner, 0);
+      /** a directory is named by its title, or by its id as ls shows it; a title wins */
+      const dir =
+        dirs.find((item) => item.title === segment) ?? dirs.find((item) => item.id === segment);
+      if (!dir) throw new Error(`Directory does not exist: ${segment}`);
+      path.push(dir);
     }
-    if (name === '/') {
-      this.path = [];
-      return { status: 200 };
+    return path;
+  }
+
+  /**
+   * Go to a directory, the path stays as it was if the target does not exist
+   */
+  public async cd(target: string) {
+    this.path = await this.resolve(this.path, target);
+  }
+
+  /**
+   * Step back out of directories that do not exist anymore,
+   * for example after rmdir of the directory we are in
+   */
+  public async revalidate() {
+    const kept: Dir[] = [];
+    for (const dir of this.path) {
+      const siblings = await this.core.lsdir(kept.at(-1)?.id ?? '/', 0);
+      const found = siblings.find((item) => item.id === dir.id);
+      if (!found) break;
+      kept.push(found);
     }
-    if (processedDir !== null) this.path.push(processedDir);
-
-    /**
-     * Cache available dirs in the current path
-     */
-    this.cacheDirsInWd();
-
-    /**
-     * Do nothing if required dir to cd does not exist in wd
-     */
-    if (processedDir === null)
-      return { status: 404, info: 'Directory does not exist' };
-    return { status: 200 };
-  }
-
-  public pwd() {
-    let path = '/';
-    path += this.path.map((dir: any) => dir.title).join('/');
-
-    path = path.replaceAll('//', '/');
-    return { status: 200, data: path };
-  }
-
-  public async lsdir(page: number) {
-    let dirs = await this.core.lsdir(this.getCDI(), page);
-    console.log('DIRS: ', dirs);
-    this.dirsInPWD = dirs;
-    const output = dirs
-      .map(
-        (dir: any) =>
-          ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.fields}]`
-      )
-      .join('\n');
-
-    return {
-      status: 200,
-      data: output,
-    };
-  }
-
-  public async ls(page: number) {
-    let cards: any = await this.core.ls(this.getCDI(), page);
-    return cards
-      .map(
-        (card: Card) =>
-          ` · CARD ${card.id} owned by ${
-            card.owner
-          } has sides [${card.contents.join()}] next: ${card.next} prev: ${
-            card.prev
-          } SPEC: ${JSON.stringify(card.spec)}`
-      )
-      .join('\n');
-  }
-}
-
-class Dir {
-  public id = '/';
-  public title: string = '';
-  constructor(
-    id: string,
-    icon: string,
-    title: string,
-    owner: string,
-    sides: string[]
-  ) {
-    this.id = id;
+    this.path = kept;
   }
 }

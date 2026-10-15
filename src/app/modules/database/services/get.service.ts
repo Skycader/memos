@@ -1,13 +1,10 @@
 import { Injectable } from '@angular/core';
 import { db } from './db';
-import { QueryService } from './query.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GetService {
-  constructor(private query: QueryService) {}
-
   async dirByOwner(owner: string) {
     console.log('ownerID:', owner, typeof owner, owner.length);
     return await db.directory
@@ -26,13 +23,38 @@ export class GetService {
       .toArray();
   }
 
+  async cardById(id: string) {
+    return await db.card
+      .where({
+        id,
+      })
+      .toArray();
+  }
+
+  /**
+   * A directory with the given title inside the given owner, if any
+   */
+  async dirByOwnerAndTitle(owner: string, title: string) {
+    return await db.directory.where({ owner, title }).first();
+  }
+
+  /** ids of all the cards of a directory */
+  async cardIdsByOwner(owner: string): Promise<string[]> {
+    return (await db.card.where({ owner }).primaryKeys()) as unknown as string[];
+  }
+
+  async countCardsByOwner(owner: string) {
+    return await db.card.where({ owner }).count();
+  }
+
   async cardsByOwner(owner: string, limit: number, offset: number) {
     return await db.card
       .where({
         owner: owner,
       })
-      .limit(limit)
+      /** skip first, then take: Dexie applies limit().offset() the other way round */
       .offset(offset)
+      .limit(limit)
       .toArray();
   }
 }
