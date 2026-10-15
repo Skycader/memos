@@ -48,9 +48,10 @@ a **terminal in the browser**. Angular 17 + Dexie (IndexedDB), no backend, no ex
 
 1. **Act only on a direct order.** Propose, wait, then do. If an order is ambiguous, ask once with the
    options and your recommendation (the owner often answers "as you recommend").
-2. **Commit and push only when told** ("commit and push"). Work goes on a feature branch. The commit
-   message is English, prefixed `feat:` / `fix:` / `docs:` / `refactor:` / `chore:`; keep any
-   attribution trailer your tooling requires.
+2. **Commit and push only when told** ("commit and push"). Work goes on a **feature branch cut from
+   `main`**; never commit on `main` itself, the owner merges. The commit message is English, prefixed
+   `feat:` / `fix:` / `docs:` / `refactor:` / `chore:`; keep any attribution trailer your tooling
+   requires.
 3. **Keep `test` green** and add checks for what you change (see [testing.md](testing.md)). Check in
    the browser, not only by compiling.
 4. **Do not "clean up" what the owner has not looked at.** Never delete assets without showing what they
@@ -116,11 +117,15 @@ npx ng build                                # production build (output in dist/,
 - Working: directories and cards, `ls` with pages (20 per page), CSV export / import, `doctor`
   (finds orphans, moves them to `/lost+found`), `seed` (demo data), themes and fonts, a generated
   `help`, Tab completion, history, selection that stays selected.
-- **Git:** all recent work is on the branch `feature/terminal-registry` and is **not merged into
-  `main` yet**. `origin` has two push URLs, so one `git push` goes to **GitHub and GitLab**; the remote
-  `gitlab` is also there. On GitLab the branch `main` is **protected** and holds an unrelated
-  auto-created commit, so pushing `main` there is rejected until the owner changes it. The local
-  `main` is set to track `gitlab` (odd; not changed on purpose).
+- **Git:** the work is **merged into `main`** (the branches `feature/self-test-and-rmdir` and
+  `feature/terminal-registry`, as a pull request on GitHub and a merge request on GitLab). Start new
+  work from an up-to-date `main` (`git switch main`, `git pull`) on a new branch.
+  - Two servers, one push: `origin` has **two push URLs**, so `git push` goes to **GitHub and GitLab**
+    at once. The remote `gitlab` exists as well, for `git fetch gitlab` and `git ls-remote gitlab`.
+    A push through `origin` does not update the `gitlab/*` tracking refs; fetch to see them.
+  - The local `main` tracks `origin/main` (GitHub). The branch `main` is **protected on GitLab**: a
+    normal fast-forward push is accepted, a force push is refused.
+  - `main` is the same commit on both servers. It was aligned by one extra merge commit (see the traps).
 - The up-to-date list of what is done, postponed, parked and waiting for the owner is in
   [roadmap.md](roadmap.md) ("Now: make it fully operational", then the stages and "Parked ideas").
   Short version of the open points: the owner still has to decide about duplicate titles in `doctor`
@@ -137,6 +142,11 @@ npx ng build                                # production build (output in dist/,
 - Dexie closes a database after `delete()`: reopen it (`wipe` in `db.ts`).
 - Ids are random 4 characters, retried until free; a title is unique inside its directory.
 - The dev server reloads the page when a file changes, which cuts a running browser script short.
+- **Merging the same branch separately on GitHub and on GitLab makes two different merge commits** with
+  identical files, and `main` then diverges between the servers (the next push of `main` is rejected by
+  one of them). Merge in one place. If it already happened, merge the other server's `main` into the
+  local `main` (`git fetch gitlab`, `git merge gitlab/main`) and push: the new commit descends from both,
+  so both take it without force. This is what was done once.
 
 ## The other docs
 
