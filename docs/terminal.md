@@ -114,7 +114,9 @@ focusing the input would drop the selection. The line with the prompt is a `div`
 for the same reason (a label hands the focus to its input on every click). If you start typing
 while nothing is focused, the keys go to the input; shortcuts with Ctrl, Cmd or Alt are left alone.
 
-Tab completes the command name, or the last word through the command's `complete`:
+Tab completes the command name, or the last word through the command's `complete`. A name typed
+in full wins over longer ones (`rm` + Tab gives `rm `, not a list with `rmdir`), and `rm <Tab>` /
+`rmdir <Tab>` complete the id of a card / a directory in the current directory:
 `fo` -> `font `, `font J` -> `font JetBrainsMono`, `cd Su` -> ``cd `Sub Dir` `` (in backticks when the
 name has spaces). When several options fit, the common part is filled in and the options are
 listed under the line. `test` checks all of this.

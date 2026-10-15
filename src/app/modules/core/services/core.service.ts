@@ -185,6 +185,13 @@ export class CoreService {
   }
 
   /**
+   * Ids of all the cards of a directory (for Tab completion)
+   */
+  public async cardIds(owner: string): Promise<string[]> {
+    return await this.db.get.cardIdsByOwner(owner);
+  }
+
+  /**
    * Remove one card by id
    * @returns 1 if it was there, 0 if there is no such card
    */

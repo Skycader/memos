@@ -559,6 +559,25 @@ export class DebugService {
           `${await tab('fo')} | ${await tab('th')}`
         );
         check('tab: help completes the name of a command', (await tab('help to')) === 'help touch');
+
+        /** ids: we are in /__test__, with one card and one directory in it */
+        const topId = (await db.card.where('owner').equals(root4).toArray())[0]?.id ?? '';
+        const subId = (await this.core.lsdir(root4, 0))[0]?.id ?? '';
+        check(
+          'tab: a name typed in full gets its space, longer names do not hide it (rm, rmdir)',
+          (await tab('rm')) === 'rm ' && (await tab('rmd')) === 'rmdir ' && (await tab('cd')) === 'cd ',
+          `${await tab('rm')} | ${await tab('rmd')} | ${await tab('cd')}`
+        );
+        check(
+          'tab: rm completes the id of a card here, rmdir the id of a directory here',
+          topId !== '' &&
+            subId !== '' &&
+            (await tab('rm ')) === `rm ${topId}` &&
+            (await tab(`rm ${topId.slice(0, 2)}`)) === `rm ${topId}` &&
+            (await tab(`rmdir ${subId.slice(0, 2)}`)) === `rmdir ${subId}` &&
+            (await tab('rm !!')) === 'rm !!',
+          `card ${topId}: ${await tab('rm ')}, dir ${subId}: ${await tab(`rmdir ${subId.slice(0, 2)}`)}`
+        );
         check(
           'tab: lists the options when a name is ambiguous',
           (await tabOptions('d')).sort().join() === 'doctor,drop',

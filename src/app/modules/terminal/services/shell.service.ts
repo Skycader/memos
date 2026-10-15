@@ -85,6 +85,11 @@ export class ShellService {
     /** the command name is being typed */
     if (firstSpace === -1) {
       const names = allCommandNames().filter((name) => name.startsWith(buffer));
+      /**
+       * A name that is typed in full wins over longer ones (rm over rmdir):
+       * Tab adds the space, and the next Tab completes the argument
+       */
+      if (names.includes(buffer)) return { buffer: buffer + ' ', options: [] };
       return this.apply(buffer, 0, names, ' ', false);
     }
 

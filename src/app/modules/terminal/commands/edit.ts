@@ -59,6 +59,7 @@ export const rm: TerminalCommand = {
   why: 'Gets rid of one card you do not need. Directories are removed with rmdir.',
   examples: ['rm Lzad  # the id is shown by ls c'],
   notes: [
+    'Tab completes the id of a card in the current directory',
     'Cards only: give the id of a directory and rm refuses, pointing you to rmdir',
     'There is no confirmation and no undo: export first if in doubt',
   ],
@@ -68,6 +69,10 @@ export const rm: TerminalCommand = {
     if ((await ctx.core.removeCard(id)) === 0)
       throw new Error(`There is no card with the id ${id} (directories are removed with rmdir)`);
     ctx.out(`Removed card ${id}`);
+  },
+  async complete(partial, ctx) {
+    const ids = await ctx.core.cardIds(ctx.terminal.getCDI());
+    return ids.filter((id) => id.startsWith(partial));
   },
 };
 
@@ -79,6 +84,7 @@ export const rmdir: TerminalCommand = {
   why: 'Gets rid of a directory you do not need, together with all its cards and sub-directories.',
   examples: ['rmdir aB3x  # the id is shown by ls'],
   notes: [
+    'Tab completes the id of a directory in the current directory',
     'Removes everything inside too, at any depth, in one go',
     'There is no confirmation and no undo: export first if in doubt',
   ],
@@ -90,5 +96,9 @@ export const rmdir: TerminalCommand = {
     /** we may have just removed the directory we are standing in */
     await ctx.terminal.revalidate();
     ctx.out(`Removed ${removed} director${removed === 1 ? 'y' : 'ies'} with all cards`);
+  },
+  async complete(partial, ctx) {
+    const dirs = await ctx.core.lsdir(ctx.terminal.getCDI(), 0);
+    return dirs.map((dir) => dir.id).filter((id) => id.startsWith(partial));
   },
 };
