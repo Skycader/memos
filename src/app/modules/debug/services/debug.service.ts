@@ -300,8 +300,18 @@ export class DebugService {
       /**
        * REMOVE: dir goes away, and all its content goes with it
        */
-      await this.core.removeDir(root);
+      const wentWithRoot = await this.core.removeDir(root);
       check('rmdir: removed dir is gone', (await db.directory.get(root as any)) === undefined);
+      check(
+        'rmdir: reports every directory (itself included) and card that went',
+        wentWithRoot.dirs === 4 && wentWithRoot.cards === 5,
+        JSON.stringify(wentWithRoot)
+      );
+      const nothing = await this.core.removeDir(root);
+      check(
+        'rmdir: a directory that is not there reports nothing removed',
+        nothing.dirs === 0 && nothing.cards === 0
+      );
 
       const orphanDirs = await db.directory.where('owner').anyOf(dirIds).count();
       check(
@@ -544,7 +554,12 @@ export class DebugService {
           secondSeed.err
         );
         const demoId = (await this.core.lsdir(root4, 0)).find((dir) => dir.title === 'Demo')?.id ?? '';
-        await this.core.removeDir(demoId);
+        const demoGone = await run(`rmdir ${demoId}`);
+        check(
+          'rmdir: says how many inner directories and cards went (Demo: 3 and 46)',
+          demoGone.out.includes(`Removed directory ${demoId} with 3 inner directories and 46 cards`),
+          demoGone.out + demoGone.err
+        );
         check(
           'seed: Demo is removed as a whole by rmdir (no cards left behind)',
           (await db.card.where('owner').equals(demoId).count()) === 0 &&
@@ -773,10 +788,18 @@ export class DebugService {
 
         /** remove the tree while standing inside it: the session has to step out */
         await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
+        const insideDirs = await this.core.lsdir(root4, 0);
+        const insideCards = await db.card
+          .where('owner')
+          .anyOf([root4, ...insideDirs.map((dir) => dir.id)])
+          .count();
         const removedOut = (await run(`rmdir ${root4}`)).out;
         check(
-          'terminal: rmdir removes the whole tree',
-          removedOut.includes('Removed 2'),
+          'terminal: rmdir removes the whole tree and counts what was inside it',
+          removedOut.includes(
+            `with ${insideDirs.length} inner director${insideDirs.length === 1 ? 'y' : 'ies'} ` +
+              `and ${insideCards} card${insideCards === 1 ? '' : 's'}`
+          ),
           removedOut
         );
         check(

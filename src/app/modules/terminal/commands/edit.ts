@@ -86,16 +86,23 @@ export const rmdir: TerminalCommand = {
   notes: [
     'Tab completes the id of a directory in the current directory',
     'Removes everything inside too, at any depth, in one go',
+    'Says how many inner directories and cards went with it, for example: Removed directory aB3x with 3 inner directories and 46 cards',
     'There is no confirmation and no undo: export first if in doubt',
   ],
   async run(args, ctx) {
     const id = args.at(0);
     if (!id) throw new Error('Usage: rmdir <id> (see ids in ls)');
     const removed = await ctx.core.removeDir(id);
-    if (removed === 0) throw new Error('Directory does not exist');
+    if (removed.dirs === 0) throw new Error('Directory does not exist');
     /** we may have just removed the directory we are standing in */
     await ctx.terminal.revalidate();
-    ctx.out(`Removed ${removed} director${removed === 1 ? 'y' : 'ies'} with all cards`);
+
+    /** the directory itself is not "inner": only what was inside it is counted */
+    const inner = removed.dirs - 1;
+    ctx.out(
+      `Removed directory ${id} with ${inner} inner director${inner === 1 ? 'y' : 'ies'} ` +
+        `and ${removed.cards} card${removed.cards === 1 ? '' : 's'}`
+    );
   },
   async complete(partial, ctx) {
     const dirs = await ctx.core.lsdir(ctx.terminal.getCDI(), 0);

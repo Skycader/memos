@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
 import { Card, Directory } from '../../database/services/db';
+import { Removed } from '../../database/services/remove.service';
 import { CardSPEC } from '../models/spec.model';
 
 /** how many items one page of a listing holds */
@@ -199,7 +200,11 @@ export class CoreService {
     return await this.db.remove.cardById(id);
   }
 
-  public async removeDir(id: string) {
+  /**
+   * Remove a directory with everything inside it
+   * @returns how many directories (the one itself included) and cards went; 0 and 0 if there is no such directory
+   */
+  public async removeDir(id: string): Promise<Removed> {
     return await this.db.remove.dirById(id);
   }
 
