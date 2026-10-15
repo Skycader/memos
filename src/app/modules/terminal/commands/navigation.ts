@@ -4,23 +4,28 @@ import { TerminalCommand } from './command';
 export const cd: TerminalCommand = {
   name: 'cd',
   group: 'navigation',
-  usage: 'cd <path>',
+  usage: 'cd [path]',
   description: 'go to a directory',
   why:
     'Directories hold cards. Every other command works on the directory you are in, ' +
     'so cd is how you move around.',
   examples: [
     'cd French  # into French',
+    'cd 4a3x  # the same, by the id that ls shows',
     'cd French/Verbs  # several levels at once',
     'cd ..  # one level up',
     'cd /  # to the root',
+    'cd  # nothing after it: also to the root',
     'cd `My French`  # backticks for names with spaces',
   ],
-  notes: ['Tab completes directory names'],
+  notes: [
+    'A bare cd goes to the root, not to a home directory as in Linux: Memos has none',
+    'A directory is named by its title or by its id; if both fit, the title wins',
+    'Tab completes directory names',
+  ],
   async run(args, ctx) {
-    const target = args.at(0);
-    if (target === undefined) throw new Error('Usage: cd <path>');
-    await ctx.terminal.cd(target);
+    /** a bare cd goes to the root (there is no home directory here, unlike in Linux) */
+    await ctx.terminal.cd(args.at(0) ?? '/');
   },
   async complete(partial, ctx) {
     const cut = partial.lastIndexOf('/') + 1;

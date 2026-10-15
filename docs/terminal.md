@@ -44,7 +44,10 @@ constant `QUOTE`), and the cases are checked by `test`.
 ## Paths
 
 `TerminalService.resolve(from, path)` understands `name`, `..`, `.`, `/` and combinations
-(`French/Verbs`, `/French`, `../Spanish`). Nothing is cached: every step asks the database,
+(`French/Verbs`, `/French`, `../Spanish`). Any name in a path can also be the **id** of a
+directory (`cd 4a3x`, as `ls` shows it, like `rm` and `rmdir` take ids); when a title and an id are
+the same text, the title wins. A bare `cd` goes to the root `/`: unlike in Linux there is no home
+directory here. Nothing is cached: every step asks the database,
 so the session does not see stale data. After a directory is removed,
 `revalidate()` steps the session out of directories that no longer exist.
 

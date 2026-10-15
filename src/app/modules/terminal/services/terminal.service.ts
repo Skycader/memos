@@ -40,7 +40,8 @@ export class TerminalService {
   /**
    * Find where a path leads without going there
    * @param from directory to start from
-   * @param target `French`, `..`, `/`, `French/Verbs`, `/French`, `../Spanish`
+   * @param target `French`, `..`, `/`, `French/Verbs`, `/French`, `../Spanish`; any name
+   * in it can be the id of a directory instead (`4a3x`, `French/4a3x`)
    * @throws Error if some part of the path does not exist
    */
   public async resolve(from: Dir[], target: string): Promise<Dir[]> {
@@ -54,7 +55,9 @@ export class TerminalService {
       }
       const owner = path.at(-1)?.id ?? '/';
       const dirs = await this.core.lsdir(owner, 0);
-      const dir = dirs.find((item) => item.title === segment);
+      /** a directory is named by its title, or by its id as ls shows it; a title wins */
+      const dir =
+        dirs.find((item) => item.title === segment) ?? dirs.find((item) => item.id === segment);
       if (!dir) throw new Error(`Directory does not exist: ${segment}`);
       path.push(dir);
     }

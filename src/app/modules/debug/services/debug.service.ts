@@ -653,6 +653,37 @@ export class DebugService {
           (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`
         );
 
+        /** cd by id too, and the title wins when a directory is titled like another one's id */
+        await run(`cd /${TEST_TITLE}`);
+        const subDirId =
+          (await this.core.lsdir(root4, 0)).find((dir) => dir.title === 'Sub Dir')?.id ?? '';
+        await run(`cd ${subDirId}`);
+        const byId = (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`;
+        /** back in /__test__ first: mkdir creates in the current directory, which is now Sub Dir */
+        await run(`cd /${TEST_TITLE}`);
+        await run(`mkdir 📁 ${subDirId} Q A`);
+        await run(`cd ${subDirId}`);
+        const titleWins = (await run('pwd')).out === `/${TEST_TITLE}/${subDirId}`;
+        await run(`cd /${TEST_TITLE}`);
+        const lookalike = (await this.core.lsdir(root4, 0)).find((dir) => dir.title === subDirId);
+        if (lookalike) await this.core.removeDir(lookalike.id);
+        check(
+          'terminal: cd takes the id of a directory as well as its title, the title wins',
+          subDirId !== '' && byId && titleWins,
+          `by id: ${byId}, title wins: ${titleWins}`
+        );
+        await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
+
+        /** a bare cd goes to the root, from anywhere */
+        await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
+        const bare = await run('cd');
+        check(
+          'terminal: a bare cd goes to the root (no home directory), without an error',
+          bare.err === '' && (await run('pwd')).out === '/',
+          bare.err
+        );
+        await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
+
         const lost = await run('cd nowhere');
         check(
           'terminal: cd into a missing directory is an error and stays in place',
@@ -788,16 +819,19 @@ export class DebugService {
 
         /** remove the tree while standing inside it: the session has to step out */
         await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
-        const insideDirs = await this.core.lsdir(root4, 0);
-        const insideCards = await db.card
-          .where('owner')
-          .anyOf([root4, ...insideDirs.map((dir) => dir.id)])
-          .count();
+        /** count what is below root4 at any depth, straight from the database */
+        const below: string[] = [];
+        for (let level = [root4]; level.length > 0; ) {
+          const kids = await db.directory.where('owner').anyOf(level).toArray();
+          level = kids.map((kid) => kid.id);
+          below.push(...level);
+        }
+        const insideCards = await db.card.where('owner').anyOf([root4, ...below]).count();
         const removedOut = (await run(`rmdir ${root4}`)).out;
         check(
           'terminal: rmdir removes the whole tree and counts what was inside it',
           removedOut.includes(
-            `with ${insideDirs.length} inner director${insideDirs.length === 1 ? 'y' : 'ies'} ` +
+            `with ${below.length} inner director${below.length === 1 ? 'y' : 'ies'} ` +
               `and ${insideCards} card${insideCards === 1 ? '' : 's'}`
           ),
           removedOut
