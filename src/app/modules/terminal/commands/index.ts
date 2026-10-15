@@ -1,7 +1,7 @@
 import { TerminalCommand } from './command';
 import { exportCommand, importCommand, seed } from './data';
 import { doctor, test } from './diagnostics';
-import { mkdir, rmdir, touch } from './edit';
+import { mkdir, rm, rmdir, touch } from './edit';
 import { cd, ls, pwd } from './navigation';
 import { clear, drop, font, help, theme } from './system';
 
@@ -15,6 +15,7 @@ export const COMMANDS: TerminalCommand[] = [
   ls,
   mkdir,
   touch,
+  rm,
   rmdir,
   exportCommand,
   importCommand,

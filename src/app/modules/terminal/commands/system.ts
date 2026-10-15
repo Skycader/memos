@@ -5,7 +5,7 @@ import { TerminalCommand } from './command';
  * Not implemented yet. Move a line out of here when it works
  */
 const PLANNED = [
-  'touch ?"Un chat" "A cat" - make a side question only',
+  'touch ?`Un chat` `A cat` - make a side question only',
   'rmdir <dir name> - remove a directory by name',
 ];
 

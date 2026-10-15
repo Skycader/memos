@@ -10,7 +10,7 @@ import { FileService } from '../../exchange/file.service';
 import { allCommandNames, COMMANDS, findCommand } from '../commands';
 import { CommandContext, Output } from '../commands/command';
 import { TerminalService } from './terminal.service';
-import { tokenize } from './tokenizer';
+import { QUOTE, tokenize } from './tokenizer';
 
 @Injectable({
   providedIn: 'root',
@@ -92,9 +92,9 @@ export class ShellService {
     if (!command?.complete) return { buffer, options: [] };
 
     /** the last word, or everything after the last opening quote */
-    const quotes = (buffer.match(/"/g) ?? []).length;
-    const start = quotes % 2 === 1 ? buffer.lastIndexOf('"') : buffer.search(/\S*$/);
-    const quoted = buffer[start] === '"';
+    const quotes = buffer.split(QUOTE).length - 1;
+    const start = quotes % 2 === 1 ? buffer.lastIndexOf(QUOTE) : buffer.search(/\S*$/);
+    const quoted = buffer[start] === QUOTE;
     const partial = buffer.slice(quoted ? start + 1 : start);
 
     const options = await command.complete(partial, this.context(this.silent));
@@ -116,12 +116,12 @@ export class ShellService {
     }
 
     const single = options.length === 1;
-    const wrap = !quoted && /\s/.test(common) ? '"' : '';
+    const wrap = !quoted && /\s/.test(common) ? QUOTE : '';
     const text =
       buffer.slice(0, start) +
-      (quoted ? '"' : wrap) +
+      (quoted ? QUOTE : wrap) +
       common +
-      (single && (quoted || wrap) ? '"' : '') +
+      (single && (quoted || wrap) ? QUOTE : '') +
       (single ? suffix : '');
     return { buffer: text, options: single ? [] : options };
   }

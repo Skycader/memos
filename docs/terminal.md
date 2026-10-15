@@ -31,10 +31,15 @@ Because commands write to an `Output` instead of to the screen, the same code ru
 
 ## Words and quotes
 
-`touch "Un chat" "A cat"` gives two sides. `touch l'ami friend` keeps the apostrophe:
-a single quote opens a word only at its start and closes only before whitespace.
-A backslash makes the next character literal (`a\ b`). The exact rules are in the comment
-of `tokenize`, and the cases are checked by `test`.
+A word with spaces goes between **backticks**: ``touch `Un chat` `A cat` `` gives two sides,
+``cd `My French` `` goes into a directory with a space in its name. Inside backticks, ``\` `` is a
+backtick and `\\` is a backslash.
+
+A double quote `"` is an ordinary character, so a side can hold quotes: `touch say "hi"` gives the
+sides `say` and `"hi"`. `touch l'ami friend` keeps the apostrophe: a single quote opens a word only at
+its start and closes only before whitespace. A backslash outside backticks makes the next character
+literal (`a\ b`). The exact rules are in the comment of `tokenize` (the grouping character is the
+constant `QUOTE`), and the cases are checked by `test`.
 
 ## Paths
 
@@ -110,6 +115,6 @@ for the same reason (a label hands the focus to its input on every click). If yo
 while nothing is focused, the keys go to the input; shortcuts with Ctrl, Cmd or Alt are left alone.
 
 Tab completes the command name, or the last word through the command's `complete`:
-`fo` -> `font `, `font J` -> `font JetBrainsMono`, `cd Su` -> `cd "Sub Dir"` (quoted when the
+`fo` -> `font `, `font J` -> `font JetBrainsMono`, `cd Su` -> ``cd `Sub Dir` `` (in backticks when the
 name has spaces). When several options fit, the common part is filled in and the options are
 listed under the line. `test` checks all of this.

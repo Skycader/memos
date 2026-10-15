@@ -14,7 +14,7 @@ export const cd: TerminalCommand = {
     'cd French/Verbs  # several levels at once',
     'cd ..  # one level up',
     'cd /  # to the root',
-    'cd "My French"  # quotes for names with spaces',
+    'cd `My French`  # backticks for names with spaces',
   ],
   notes: ['Tab completes directory names'],
   async run(args, ctx) {

@@ -6,6 +6,14 @@ import { db } from './db';
 })
 export class RemoveService {
   /**
+   * Remove one card
+   * @returns 1 if there was such a card, 0 if not
+   */
+  public async cardById(id: string): Promise<number> {
+    return await db.card.where({ id }).delete();
+  }
+
+  /**
    * Remove a directory together with everything inside:
    * all nested directories and all cards, at any depth.
    * Runs in one transaction: either everything goes, or nothing does.

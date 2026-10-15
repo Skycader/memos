@@ -62,7 +62,7 @@ export interface TerminalCommand {
   why: string;
   /**
    * Things to type, one per line; `# text` after two spaces explains it:
-   * `touch "Un chat" "A cat"  # quotes for sides with spaces`. Shown by `help <command>`
+   * ``touch `Un chat` `A cat`  # backticks for sides with spaces``. Shown by `help <command>`
    */
   examples: string[];
   /** rules, limits and warnings: shown by `help <command>` */

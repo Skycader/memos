@@ -10,7 +10,7 @@ export const mkdir: TerminalCommand = {
     'are the sides every card in it has, for example Original and Translation.',
   examples: [
     'mkdir 🇫🇷 French Original Translation  # two sides',
-    'mkdir 🇫🇷 "My French" Original Translation  # quotes for a title with spaces',
+    'mkdir 🇫🇷 `My French` Original Translation  # backticks for a title with spaces',
     'mkdir 🎓 Words Original Transcription Translation  # three sides',
   ],
   notes: [
@@ -34,7 +34,8 @@ export const touch: TerminalCommand = {
     'its translation. touch puts a new card in the current directory.',
   examples: [
     'touch chat cat  # two sides',
-    'touch "Un chat" "A cat"  # quotes for sides with spaces',
+    'touch `Un chat` `A cat`  # backticks for sides with spaces',
+    'touch say "hi"  # a double quote is an ordinary character',
     'touch bonjour /bɔ̃ʒuʁ/ hello  # three sides, for a directory with three',
   ],
   notes: [
@@ -47,6 +48,26 @@ export const touch: TerminalCommand = {
     if (owner === '/')
       throw new Error('Cards can not be created in root (/): cd into a directory first');
     await ctx.core.touch(args, owner);
+  },
+};
+
+export const rm: TerminalCommand = {
+  name: 'rm',
+  group: 'edit',
+  usage: 'rm <id>',
+  description: 'remove a card',
+  why: 'Gets rid of one card you do not need. Directories are removed with rmdir.',
+  examples: ['rm Lzad  # the id is shown by ls c'],
+  notes: [
+    'Cards only: give the id of a directory and rm refuses, pointing you to rmdir',
+    'There is no confirmation and no undo: export first if in doubt',
+  ],
+  async run(args, ctx) {
+    if (args.length !== 1) throw new Error('Usage: rm <id> (see ids in ls)');
+    const id = args[0];
+    if ((await ctx.core.removeCard(id)) === 0)
+      throw new Error(`There is no card with the id ${id} (directories are removed with rmdir)`);
+    ctx.out(`Removed card ${id}`);
   },
 };
 

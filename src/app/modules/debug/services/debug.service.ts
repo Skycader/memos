@@ -94,15 +94,17 @@ export class DebugService {
        */
       const cases: [string, string[] | 'error'][] = [
         ['mkdir 🇫🇷 French A B', ['mkdir', '🇫🇷', 'French', 'A', 'B']],
-        ['touch "Un chat" "A cat"', ['touch', 'Un chat', 'A cat']],
+        ['touch `Un chat` `A cat`', ['touch', 'Un chat', 'A cat']],
         ["touch l'ami friend", ['touch', "l'ami", 'friend']],
         ["touch 'l'ami' friend", ['touch', "l'ami", 'friend']],
-        ['touch "say \\"hi\\""', ['touch', 'say "hi"']],
-        ['touch "" x', ['touch', '', 'x']],
+        ['touch `say \\`hi\\``', ['touch', 'say `hi`']],
+        ['touch say "hi"', ['touch', 'say', '"hi"']],
+        ['touch `say "hi" now` x', ['touch', 'say "hi" now', 'x']],
+        ['touch `` x', ['touch', '', 'x']],
         ['touch a\\ b', ['touch', 'a b']],
         ['  ls   ', ['ls']],
         ['', []],
-        ['touch "Un chat', 'error'],
+        ['touch `Un chat', 'error'],
       ];
       const badCases = cases.filter(([line, expected]) => {
         try {
@@ -112,7 +114,7 @@ export class DebugService {
         }
       });
       check(
-        'tokenizer: quotes, apostrophes, escapes and empty words',
+        'tokenizer: backticks, apostrophes, double quotes as plain text, escapes and empty words',
         badCases.length === 0,
         badCases.map(([line]) => line).join(' | ')
       );
@@ -377,7 +379,7 @@ export class DebugService {
         root4 = (await this.core.lsdir('/', 0)).find((dir) => dir.title === TEST_TITLE)?.id ?? '';
 
         await run(`cd ${TEST_TITLE}`);
-        await run('mkdir 📁 "Sub Dir" Q A');
+        await run('mkdir 📁 `Sub Dir` Q A');
 
         /** ls: directories and cards together, or only one kind */
         await run('touch top side');
@@ -475,6 +477,37 @@ export class DebugService {
         await this.core.removeDir(pagesId);
 
         /**
+         * rm removes one card by id. Along the way: a double quote is plain text in a side
+         */
+        await run('touch gone "bye"');
+        const gone = (await db.card.where('owner').equals(root4).toArray()).find(
+          (card) => card.contents[0] === 'gone'
+        );
+        check(
+          'touch: a double quote inside a side stays as typed',
+          gone?.contents.join('|') === 'gone|"bye"',
+          JSON.stringify(gone?.contents)
+        );
+        const cardsBefore = await db.card.where('owner').equals(root4).count();
+        const removedCard = await run(`rm ${gone?.id}`);
+        check(
+          'rm: removes exactly one card by id',
+          removedCard.err === '' &&
+            removedCard.out.includes('Removed card') &&
+            (await db.card.get((gone as any).id)) === undefined &&
+            (await db.card.where('owner').equals(root4).count()) === cardsBefore - 1,
+          removedCard.out + removedCard.err
+        );
+        check(
+          'rm: the same id again, a directory id, no argument and two arguments are errors',
+          (await run(`rm ${gone?.id}`)).err.includes('no card') &&
+            (await run(`rm ${root4}`)).err.includes('rmdir') &&
+            (await run('rm')).err.includes('Usage: rm') &&
+            (await run('rm a b')).err.includes('Usage: rm') &&
+            (await db.directory.get(root4 as any)) !== undefined
+        );
+
+        /**
          * seed: the demo data goes into the current directory (/__test__)
          */
         const seeded = await run('seed');
@@ -540,7 +573,7 @@ export class DebugService {
         );
         check(
           'tab: completes a directory name, quoting it when it has spaces',
-          (await tab('cd Sub')) === 'cd "Sub Dir"' && (await tab(`cd /${TEST_TITLE.slice(0, 4)}`)) === `cd /${TEST_TITLE}`,
+          (await tab('cd Sub')) === 'cd `Sub Dir`' && (await tab(`cd /${TEST_TITLE.slice(0, 4)}`)) === `cd /${TEST_TITLE}`,
           `${await tab('cd Sub')} | ${await tab(`cd /${TEST_TITLE.slice(0, 4)}`)}`
         );
         check(
@@ -560,11 +593,11 @@ export class DebugService {
           `${fontInfo} | ${themeInfo}`
         );
 
-        await run('cd "Sub Dir"');
+        await run('cd `Sub Dir`');
         const where = (await run('pwd')).out;
-        check('terminal: cd into a name with spaces (quotes)', where === `/${TEST_TITLE}/Sub Dir`, where);
+        check('terminal: cd into a name with spaces (backticks)', where === `/${TEST_TITLE}/Sub Dir`, where);
 
-        await run('touch "Un chat" "A cat"');
+        await run('touch `Un chat` `A cat`');
         const listed = (await run('ls')).out;
         check(
           'terminal: touch keeps quoted sides with spaces as single sides',
@@ -574,7 +607,7 @@ export class DebugService {
 
         await run('cd ../..');
         check('terminal: cd ../.. goes up two levels', (await run('pwd')).out === '/');
-        await run(`cd "/${TEST_TITLE}/Sub Dir"`);
+        await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
         check(
           'terminal: cd by absolute path',
           (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`
@@ -596,7 +629,7 @@ export class DebugService {
           'terminal: unknown command is an error',
           (await run('frobnicate')).err.includes('not found')
         );
-        check('terminal: unclosed quote is an error', (await run('touch "a')).err.includes('quote'));
+        check('terminal: unclosed quote is an error', (await run('touch `a')).err.includes('quote'));
 
         await run('cd /');
         const rootTouch = await run('touch x y');
@@ -627,7 +660,7 @@ export class DebugService {
           touchHelp.trim().startsWith('touch <sides...>') &&
             touchHelp.includes('Why') &&
             touchHelp.includes('Examples') &&
-            touchHelp.includes('touch "Un chat" "A cat"') &&
+            touchHelp.includes('touch `Un chat` `A cat`') &&
             touchHelp.includes('Notes'),
           touchHelp
         );
@@ -657,7 +690,7 @@ export class DebugService {
           'help: ends with the Planned list and exactly one empty line before the next prompt',
           helpText.endsWith(
             ' * Planned (not implemented yet)\n\n' +
-              '    · touch ?"Un chat" "A cat" - make a side question only\n' +
+              '    · touch ?`Un chat` `A cat` - make a side question only\n' +
               '    · rmdir <dir name> - remove a directory by name\n\n'
           ) &&
             !helpText.endsWith('\n\n\n') &&
@@ -680,12 +713,18 @@ export class DebugService {
           const press = (init: KeyboardEventInit) =>
             document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init }));
 
+          /** a mouse selection takes the focus out of the input, and while an input has the
+           * focus the browser does not report a selection made elsewhere */
+          box.blur();
           selection.removeAllRanges();
           const range = document.createRange();
           range.selectNodeContents(written);
           selection.addRange(range);
+          /** a page that is not drawn (a hidden or minimised window) reports no selection at all,
+           * so there is nothing to check: say so instead of failing */
+          const reportable = selection.toString() !== '';
           click();
-          const kept = selection.toString() !== '';
+          const kept = !reportable || selection.toString() !== '';
 
           selection.removeAllRanges();
           box.blur();
@@ -707,10 +746,14 @@ export class DebugService {
             kept && refocused && typingGoesToInput && shortcutUntouched,
             `kept: ${kept}, click focuses: ${refocused}, typing: ${typingGoesToInput}, ctrl+c untouched: ${shortcutUntouched}`
           );
+          if (!reportable)
+            lines.push(
+              '  (the selection part of the check above was skipped: the page is not drawn, so the browser reports no selection)'
+            );
         }
 
         /** remove the tree while standing inside it: the session has to step out */
-        await run(`cd "/${TEST_TITLE}/Sub Dir"`);
+        await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
         const removedOut = (await run(`rmdir ${root4}`)).out;
         check(
           'terminal: rmdir removes the whole tree',

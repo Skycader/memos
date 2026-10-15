@@ -28,7 +28,7 @@ The simplest case is Question -> Answer: two fields, one is shown, the other is 
 | Kind | Meaning | Status |
 | --- | --- | --- |
 | normal | an ordinary side, shown and answered | implemented |
-| read-only | shown, never typed in: a question side. The user can make any side read-only | planned (`CardSPEC.qfields` is reserved for it; CLI form `touch ?"Un chat" "A cat"`) |
+| read-only | shown, never typed in: a question side. The user can make any side read-only | planned (`CardSPEC.qfields` is reserved for it; CLI form ``touch ?`Un chat` `A cat` ``) |
 | tip | a hint field, see below | planned |
 
 ### Tip fields (planned)

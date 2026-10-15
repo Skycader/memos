@@ -184,6 +184,14 @@ export class CoreService {
     return { dirs: dirsHere, cards, page, pages };
   }
 
+  /**
+   * Remove one card by id
+   * @returns 1 if it was there, 0 if there is no such card
+   */
+  public async removeCard(id: string): Promise<number> {
+    return await this.db.remove.cardById(id);
+  }
+
   public async removeDir(id: string) {
     return await this.db.remove.dirById(id);
   }
