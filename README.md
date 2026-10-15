@@ -6,3 +6,5 @@ underneath.
 Expect release **soon**.
 
 Docs: [docs/](docs/README.md)
+
+New here, or an AI that lost the chat? Start with [docs/welcome.md](docs/welcome.md).

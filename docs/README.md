@@ -5,6 +5,7 @@ here: `help` in the terminal is generated from the code and is always up to date
 
 | File | About |
 | --- | --- |
+| [welcome.md](welcome.md) | **start here**: what Memos is, how the owner works, rules, map, where the work stands (written for an AI that lost the chat) |
 | [domain.md](domain.md) | what a directory, card, field and tip are; what is built and what is planned |
 | [roadmap.md](roadmap.md) | plans, from the next steps to the far future |
 | [architecture.md](architecture.md) | layers, modules, data model, the main rules |
