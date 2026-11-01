@@ -95,8 +95,10 @@ export class CoreService {
    * @param nextRepeat
    * @param prevRepeat
    * @param spec
+   * @param questionOnly positions (from 0) of the sides that are only shown when studying and
+   * never typed in: pictures, sounds, long texts with a gap to fill. Kept on the card as spec.qfields
    */
-  public async touch(contents: string[], owner: string) {
+  public async touch(contents: string[], owner: string, questionOnly: number[] = []) {
     /**
      * Assuming id constists of [A-Za-z] and [0-9], which makes 26*2+10 = 62 options for first symbol
      * and 62^2 for 2 length id (3844 both cards and dirs), and 62^3 makes over 238 000 possible cards,
@@ -121,7 +123,14 @@ export class CoreService {
      * @returns
      */
     const makeArrays = () => contents.map((item: string) => []);
+    if (questionOnly.some((side) => !Number.isInteger(side) || side < 0 || side >= contents.length))
+      throw new Error('A question only side must be one of the sides of the card');
+    if (contents.length > 0 && new Set(questionOnly).size >= contents.length)
+      throw new Error('Every side is question only: at least one side must be left to answer');
+
     const spec: CardSPEC = { status: makeArrays() };
+    /** only cards that have such a side carry the field: the others stay as they were */
+    if (questionOnly.length > 0) spec.qfields = [...new Set(questionOnly)].sort((a, b) => a - b);
     const id = await this.freeId('card');
     await this.db.add.card(id, owner, contents, Date.now(), Date.now(), spec);
   }

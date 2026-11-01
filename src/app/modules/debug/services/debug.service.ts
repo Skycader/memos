@@ -639,6 +639,65 @@ export class DebugService {
           listed
         );
 
+        /** touch ?: a side that is only shown and never typed in, kept on the card (spec.qfields) */
+        await run('mkdir 📁 QuestionOnly Q A Extra');
+        await run('cd QuestionOnly');
+        const qoDir = (await this.terminal.getCDI()) as string;
+        const qoFirst = await run('touch ?`Un chat` `A cat` plain');
+        const qoLast = await run('touch a b ?c');
+        const qoBoth = await run('touch ?a ?b ?c');
+        const qoLiteral = await run('touch ??why because ?');
+        const qoPlain = await run('touch x y z');
+        const qoCards = await db.card.where('owner').equals(qoDir).toArray();
+        const qoByFirst = (side: string) => qoCards.find((card) => card.contents[0] === side);
+        check(
+          'touch ?: the marked side is stored without the ? and its place is kept in spec.qfields',
+          qoFirst.err === '' &&
+            JSON.stringify(qoByFirst('Un chat')?.contents) === '["Un chat","A cat","plain"]' &&
+            JSON.stringify(qoByFirst('Un chat')?.spec.qfields) === '[0]' &&
+            JSON.stringify(qoByFirst('a')?.contents) === '["a","b","c"]' &&
+            JSON.stringify(qoByFirst('a')?.spec.qfields) === '[2]',
+          JSON.stringify(qoCards.map((card) => [card.contents, card.spec.qfields]))
+        );
+        check(
+          'touch ?: a card without a mark has no qfields at all, as before',
+          qoLast.err === '' &&
+            qoByFirst('x')?.spec.qfields === undefined &&
+            JSON.stringify(qoByFirst('x')?.spec.status) === '[[],[],[]]'
+        );
+        check(
+          'touch ?: ?? is one ordinary ? and a lone ? is a side, neither is question only',
+          qoLiteral.err === '' &&
+            JSON.stringify(qoByFirst('?why')?.contents) === '["?why","because","?"]' &&
+            qoByFirst('?why')?.spec.qfields === undefined,
+          qoLiteral.err
+        );
+        check(
+          'touch ?: a card with nothing to answer is refused and nothing is created',
+          qoBoth.err.includes('question only') &&
+            qoCards.length === 4 &&
+            qoPlain.err === '',
+          `${qoBoth.err} | ${qoCards.length} cards`
+        );
+        let qoCore = '';
+        try {
+          await this.core.touch(['a', 'b'], qoDir, [2]);
+        } catch (e: any) {
+          qoCore = e.message;
+        }
+        check(
+          'core touch: a question only side that is not on the card is refused',
+          qoCore.includes('one of the sides') &&
+            (await db.card.where('owner').equals(qoDir).count()) === 4,
+          qoCore
+        );
+        check(
+          'help touch: shows the ? example',
+          (await run('help touch')).out.includes('touch ?`Un chat` `A cat`')
+        );
+        await run('cd ..');
+        await this.core.removeDir(qoDir);
+
         await run('cd ../..');
         check('terminal: cd ../.. goes up two levels', (await run('pwd')).out === '/');
         await run(`cd \`/${TEST_TITLE}/Sub Dir\``);
@@ -755,7 +814,6 @@ export class DebugService {
           'help: ends with the Planned list and exactly one empty line before the next prompt',
           helpText.endsWith(
             ' * Planned (not implemented yet)\n\n' +
-              '    · touch ?`Un chat` `A cat` - make a side question only\n' +
               '    · rmdir <dir name> - remove a directory by name\n\n'
           ) &&
             !helpText.endsWith('\n\n\n') &&

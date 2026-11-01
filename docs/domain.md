@@ -28,7 +28,7 @@ The simplest case is Question -> Answer: two fields, one is shown, the other is 
 | Kind | Meaning | Status |
 | --- | --- | --- |
 | normal | an ordinary side, shown and answered | implemented |
-| read-only | shown, never typed in: a question side. The user can make any side read-only | planned (`CardSPEC.qfields` is reserved for it; CLI form ``touch ?`Un chat` `A cat` ``) |
+| read-only | shown, never typed in: a question side. The user can make any side read-only | **implemented per card**: ``touch ?`Un chat` `A cat` `` stores the place of the side in `CardSPEC.qfields` (the study command that honours it is planned); per directory (`name:ro`) is planned |
 | tip | a hint field, see below | planned |
 
 ### Tip fields (planned)
@@ -65,3 +65,14 @@ needs a new Dexie version that converts old names to `{ name, kind: 'normal' }`
    grade of the answer? This shapes the signature of the future `schedule` function.
 
 Decisions go here once they are made.
+
+### Decided: question only on a card (`touch ?`)
+
+- A `?` in front of a side marks it question only: `touch ?`Un chat` `A cat``. Study will show it
+  and never ask the user to type it, and never show `A cat` as a question for `Un chat` to be typed.
+  Meant for sides a player should not type: pictures, sounds, long texts, a text with a gap to fill.
+- The mark is not part of the value. The positions (from 0) of marked sides are stored in
+  `Card.spec.qfields`; a card with no marked side has no `qfields`, as before.
+- `??` at the start is one literal `?` (`??why` is the side `?why`); a side that is only `?` is ordinary.
+- At least one side must stay unmarked: it is the answer. A card with every side marked is refused.
+- Not decided yet: whether a directory can also declare a side read-only (`name:ro`), see question 1.

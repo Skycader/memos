@@ -61,7 +61,7 @@ comes with a check in `test`.
 
 - Kinds of fields: `normal`, `readonly`, `tip`; the `name:kind` syntax in `mkdir`
   (see [domain.md](domain.md)).
-- `touch ?"..."` for read-only sides; `rmdir <name>`.
+- ~~`touch ?`...`` for read-only sides~~ (done, per card); `rmdir <name>`.
 - More checks in `doctor`: duplicate titles in one directory, cards whose number of values
   does not match the directory fields.
 

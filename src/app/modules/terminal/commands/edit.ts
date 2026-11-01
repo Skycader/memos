@@ -1,3 +1,4 @@
+import { parseSides } from '../services/sides';
 import { TerminalCommand } from './command';
 
 export const mkdir: TerminalCommand = {
@@ -35,19 +36,25 @@ export const touch: TerminalCommand = {
   examples: [
     'touch chat cat  # two sides',
     'touch `Un chat` `A cat`  # backticks for sides with spaces',
+    'touch ?`Un chat` `A cat`  # ? before a side: it is only shown, never typed in',
+    'touch ??why because  # ?? is one ordinary ?, the side is ?why',
     'touch say "hi"  # a double quote is an ordinary character',
     'touch bonjour /bɔ̃ʒuʁ/ hello  # three sides, for a directory with three',
   ],
   notes: [
     'Give as many sides as the directory has (ls shows them in [brackets])',
     'Not allowed in the root (/): cd into a directory first',
+    'A ? before a side makes it question only: study shows it as the question and never asks you to type it, so use it for pictures, sounds, long texts or a text with a gap to fill',
+    'A card needs at least one side without ?, that one is the answer',
+    'A side that is just ? is an ordinary side; to start a side with ? write ??',
   ],
   async run(args, ctx) {
     if (args.length === 0) throw new Error('Usage: touch <sides...>');
     const owner = ctx.terminal.getCDI();
     if (owner === '/')
       throw new Error('Cards can not be created in root (/): cd into a directory first');
-    await ctx.core.touch(args, owner);
+    const { sides, questionOnly } = parseSides(args);
+    await ctx.core.touch(sides, owner, questionOnly);
   },
 };
 
