@@ -6,8 +6,10 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 
 ## 1. Stage 1a: core operations (no schema change)
 
-- [ ] 1.1 Add `UpdateService` (rename a directory, replace card contents, move owner) and `GetService` helpers (subtree walk, search by text, counts); verify with `test` checks calling them directly
-- [ ] 1.2 Add `CoreService.tree`, `search`, `count`, `renameDir`, `editCard`, `move`, `copy` (one transaction each, new ids on copy, fresh progress on copied cards); verify with `test` checks for: move keeps ids, move into itself is refused, title clash is refused, copy gives new ids, no orphans after each
+- [x] 1.1a Add `UpdateService` (`cardContents`, `moveDirectory`, `moveCard`, `directoryWithCards`: replace card contents, move owner, rename a directory with its sides and cards in one transaction); verified by Karma specs and in-app `test` checks calling them through the commands
+- [ ] 1.1b Add `GetService` helpers still missing: subtree walk, search by text, counts (needed by `tree`, `find`, `grep`, `wc`, `du`, `cp`)
+- [x] 1.2a Add `CoreService.editCard`, `editDirectory` (title, icon and sides), `moveDir`, `moveCard`, `dir`, `pathOf`, `checkTitle` (one transaction each); verified by `test`: move keeps ids, move into itself is refused
+- [ ] 1.2b Add `CoreService.tree`, `search`, `count`, `copy` (new ids on copy, fresh progress on copied cards); verify with `test` checks. `renameDir` is covered by `editDirectory` with `name:`
 - [x] 1.3 Make `rmdir` accept a title as well as an id (title wins, as in `cd`); verify by `test` (by title, by id, unknown) and by `help rmdir` showing the new usage
 - [x] 1.4 Remove `rmdir <dir name>` from `PLANNED` in `commands/system.ts` and from the `help` check in `debug.service.ts`; verify the `help ends with the Planned list` check is updated and green
 
