@@ -53,23 +53,25 @@ export class CoreService {
      * let's just leave it 62^4 = over 14 millions of cards possible to keep and that's just 8 bytes.
      */
 
-    /**
-     * A title has to be usable in a path: cd French/Verbs
-     */
-    if (title === '' || title === '.' || title === '..' || title.includes('/'))
-      throw new Error(`Title "${title}" is not allowed: it can not be empty, . or .. or contain /`);
-
-    /**
-     * A title is unique within its directory: cd and rmdir find directories by it
-     */
-    if ((await this.db.get.dirByOwnerAndTitle(owner, title)) !== undefined)
-      throw new Error(`Directory "${title}" already exists here`);
+    await this.checkTitle(owner, title);
 
     /**
      * TABLE STRUCTURE
      */
     const id = await this.freeId('dir');
     return await this.db.add.dir(id, owner, icon, title, fields);
+  }
+
+  /**
+   * A title has to be usable in a path (cd French/Verbs) and unique within its directory,
+   * because cd, rmdir and mv find directories by it
+   * @throws Error if it is not
+   */
+  private async checkTitle(owner: string, title: string) {
+    if (title === '' || title === '.' || title === '..' || title.includes('/'))
+      throw new Error(`Title "${title}" is not allowed: it can not be empty, . or .. or contain /`);
+    if ((await this.db.get.dirByOwnerAndTitle(owner, title)) !== undefined)
+      throw new Error(`Directory "${title}" already exists here`);
   }
 
   /**
@@ -257,6 +259,51 @@ export class CoreService {
   }
 
   /**
+   * Move a directory, with everything inside it, into another one. The ids do not change
+   * @param to id of the target directory, '/' for the root
+   * @throws Error if it can not be done (see UpdateService.moveDirectory); nothing changes then
+   */
+  public async moveDir(id: string, to: string): Promise<void> {
+    const before = await this.db.update.moveDirectory(id, to);
+    if (before === undefined) throw new Error(`There is no directory with the id ${id}`);
+  }
+
+  /**
+   * Move a card into a directory. The id and the progress do not change
+   * @param to id of the target directory; the root is refused: cards live in directories
+   * @returns the directory the card went into and how many sides the card has, to check that they fit
+   * @throws Error if it can not be done; nothing changes then
+   */
+  public async moveCard(id: string, to: string): Promise<{ target: Directory; sides: number }> {
+    if (to === '/')
+      throw new Error('Cards can not be moved to the root (/): cards live in directories');
+    const moved = await this.db.update.moveCard(id, to);
+    if (moved === undefined) throw new Error(`There is no card with the id ${id}`);
+    return { target: moved.target, sides: moved.card.contents.length };
+  }
+
+  /**
+   * Whether the id is a directory, and which one
+   */
+  public async dir(id: string): Promise<Directory | undefined> {
+    return (await this.db.get.dirById(id))[0];
+  }
+
+  /**
+   * The path of a directory from the root, as pwd prints it: `/French/Verbs`; `/` for the root
+   */
+  public async pathOf(id: string): Promise<string> {
+    const titles: string[] = [];
+    for (let at = id, steps = 0; at !== '/' && steps < 100000; steps++) {
+      const dir = (await this.db.get.dirById(at))[0];
+      if (!dir) break;
+      titles.unshift(dir.title);
+      at = dir.owner;
+    }
+    return '/' + titles.join('/');
+  }
+
+  /**
    * See what a change of the sides of a directory would do, without doing it
    * @param changes place (from 1) and the new name of each side, or `empty` / `drop` to take it out
    * @throws Error if there is no such directory or the change is not allowed
@@ -274,16 +321,25 @@ export class CoreService {
    * and everything is written together or not at all
    * @returns what was done
    */
-  public async editDirectory(id: string, changes: DirChange[]): Promise<DirPlan> {
+  public async editDirectory(
+    id: string,
+    changes: DirChange[],
+    meta: { icon?: string; name?: string } = {}
+  ): Promise<DirPlan> {
+    /** the new title is checked before anything is written, like the sides are */
+    const current = (await this.db.get.dirById(id))[0];
+    if (current && meta.name !== undefined && meta.name !== current.title)
+      await this.checkTitle(current.owner, meta.name);
+
     let plan: DirPlan | undefined;
-    const dir = await this.db.update.directoryWithCards(id, (current, cards) => {
-      plan = planDirectoryEdit(current.fields, cards, changes);
+    const dir = await this.db.update.directoryWithCards(id, (now, cards) => {
+      plan = planDirectoryEdit(now.fields, cards, changes);
       const done = plan;
       const changed = cards
         .map((card) => ({ card, next: applyPlanToCard(card, done) }))
         .filter(({ card, next }) => next !== card)
         .map(({ next }) => next);
-      return { fields: done.fields, cards: changed };
+      return { fields: done.fields, cards: changed, icon: meta.icon, title: meta.name };
     });
     if (dir === undefined || plan === undefined)
       throw new Error(`There is no directory with the id ${id}`);

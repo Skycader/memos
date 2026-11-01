@@ -384,12 +384,12 @@ export class DebugService {
         const run = (line: string) => shell.capture(line);
 
         await run('cd /');
-        const made = await run(`mkdir 🧪 ${TEST_TITLE} Front Back`);
+        const made = await run(`mkdir ${TEST_TITLE} Front Back`);
         check('terminal: mkdir prints nothing on success', made.out === '' && made.err === '', JSON.stringify(made));
         root4 = (await this.core.lsdir('/', 0)).find((dir) => dir.title === TEST_TITLE)?.id ?? '';
 
         await run(`cd ${TEST_TITLE}`);
-        await run('mkdir 📁 `Sub Dir` Q A');
+        await run('mkdir `Sub Dir` Q A');
 
         /** ls: directories and cards together, or only one kind */
         await run('touch top side');
@@ -426,7 +426,7 @@ export class DebugService {
         /**
          * ls pages: 3 directories and 45 cards are 48 items, so 3 pages of 20, 20 and 8
          */
-        await run('mkdir 📄 Pages Q A');
+        await run('mkdir Pages Q A');
         const pagesId = (await this.core.lsdir(root4, 0)).find((dir) => dir.title === 'Pages')?.id ?? '';
         for (const name of ['d1', 'd2', 'd3']) await this.core.mkdir(pagesId, '📁', name, []);
         for (let i = 1; i <= 45; i++) await this.core.touch([`q${i}`, `a${i}`], pagesId);
@@ -640,7 +640,7 @@ export class DebugService {
         );
 
         /** touch ?: a side that is only shown and never typed in, kept on the card (spec.qfields) */
-        await run('mkdir 📁 QuestionOnly Q A Extra');
+        await run('mkdir QuestionOnly Q A Extra');
         await run('cd QuestionOnly');
         const qoDir = (await this.terminal.getCDI()) as string;
         const qoFirst = await run('touch ?`Un chat` `A cat` plain');
@@ -882,6 +882,182 @@ export class DebugService {
           (await tab(`edit ${chat.id.slice(0, 3)}`)) === `edit ${chat.id}` &&
             (await tabOptions(`edit 1:`)).length === 0
         );
+        /**
+         * mv <what> <where>: only the owner changes, ids stay. We are still in qoDir:
+         * MvA and MvB have two sides, MvBare has none
+         */
+        await run('mkdir MvA X Y');
+        await run('mkdir MvB X Y');
+        await run('mkdir MvBare');
+        const dirIn = async (owner: string, title: string) =>
+          (await this.core.lsdir(owner, 0)).find((dir) => dir.title === title)?.id ?? '';
+        const mvA = await dirIn(qoDir, 'MvA');
+        const mvB = await dirIn(qoDir, 'MvB');
+        const mvBare = await dirIn(qoDir, 'MvBare');
+        await this.core.touch(['a', 'b'], mvA);
+        const mvCard = (await db.card.where('owner').equals(mvA).first()) as Card;
+        const ownerOfDir = async (id: string) => ((await db.directory.get(id as any)) as any)?.owner;
+        const ownerOfCard = async (id: string) => ((await db.card.get(id as any)) as Card)?.owner;
+
+        const mvDir = await run('mv MvA MvB');
+        check(
+          'mv: a directory goes into another one by title, with its id and its cards',
+          mvDir.err === '' &&
+            mvDir.out.includes('Moved directory MvA to') &&
+            mvDir.out.endsWith('/MvB') &&
+            (await ownerOfDir(mvA)) === mvB &&
+            (await ownerOfCard(mvCard.id)) === mvA,
+          mvDir.out + mvDir.err
+        );
+        const mvSelf = await run('mv MvB MvB/MvA');
+        const mvSelf2 = await run('mv MvB MvB');
+        check(
+          'mv: a directory can not go into itself or into a directory inside it, nothing moves',
+          mvSelf.err.includes('into itself') &&
+            mvSelf2.err.includes('into itself') &&
+            (await ownerOfDir(mvB)) === qoDir,
+          mvSelf.err + mvSelf2.err
+        );
+        await run('mkdir MvA X Y');
+        const mvClash = await run('mv MvA MvB');
+        const clashId = await dirIn(qoDir, 'MvA');
+        check(
+          'mv: a directory can not go where one with the same title is, nothing moves',
+          mvClash.err.includes('already a directory') && (await ownerOfDir(clashId)) === qoDir,
+          mvClash.err
+        );
+        await this.core.removeDir(clashId);
+
+        const mvOne = await run(`mv ${mvCard.id} MvB`);
+        const movedCard = (await db.card.get(mvCard.id as any)) as Card;
+        check(
+          'mv: a card goes into a directory with its id, sides and schedule, no warning if the sides fit',
+          mvOne.err === '' &&
+            mvOne.out.includes(`Moved card ${mvCard.id} to`) &&
+            !mvOne.out.includes('Warning') &&
+            movedCard.owner === mvB &&
+            JSON.stringify(movedCard.contents) === JSON.stringify(mvCard.contents) &&
+            JSON.stringify(movedCard.spec) === JSON.stringify(mvCard.spec) &&
+            movedCard.next === mvCard.next,
+          mvOne.out + mvOne.err
+        );
+        const mvWarn = await run(`mv ${mvCard.id} MvBare`);
+        check(
+          'mv: a card goes into a directory whose sides do not fit, with a warning',
+          mvWarn.err === '' &&
+            mvWarn.out.includes('Warning: the card has 2 sides, but "MvBare" has no sides') &&
+            (await ownerOfCard(mvCard.id)) === mvBare,
+          mvWarn.out + mvWarn.err
+        );
+        const mvRoot = await run(`mv ${mvCard.id} /`);
+        const mvSame = await run(`mv ${mvCard.id} MvBare`);
+        check(
+          'mv: a card can not go to the root or where it already is',
+          mvRoot.err.includes('root') &&
+            mvSame.err.includes('already there') &&
+            (await ownerOfCard(mvCard.id)) === mvBare,
+          mvRoot.err + mvSame.err
+        );
+        const mvNone = await run('mv zzzz MvB');
+        const mvNowhere = await run('mv MvB Nowhere');
+        const mvArgs = await run('mv MvB');
+        check(
+          'mv: an unknown name, an unknown target or the wrong number of words is an error',
+          mvNone.err.includes('no card or directory') &&
+            mvNowhere.err.includes('does not exist') &&
+            mvArgs.err.includes('Usage: mv') &&
+            (await ownerOfDir(mvB)) === qoDir,
+          mvNone.err + mvNowhere.err + mvArgs.err
+        );
+
+        /** to the root and back by id: the target may be the id of a directory, wherever it is */
+        const mvToRoot = await run('mv MvB /');
+        const rootNow = await ownerOfDir(mvB);
+        const mvBack = await run(`mv ${mvB} ${qoDir}`);
+        check(
+          'mv: a directory goes to the root, and back by the id of the target',
+          mvToRoot.err === '' &&
+            rootNow === '/' &&
+            mvBack.err === '' &&
+            (await ownerOfDir(mvB)) === qoDir,
+          mvToRoot.err + mvBack.err
+        );
+        check(
+          'tab: mv completes names of directories and ids',
+          (await tab('mv MvBa')) === 'mv MvBare' && (await tabOptions('mv MvA')).length === 0
+        );
+        check(
+          'mv: appears in help and has its own help',
+          (await run('help')).out.includes('mv ') && (await run('help mv')).out.includes('mv French Languages')
+        );
+        /** mkdir needs no icon; edit sets it, and renames the directory itself, by title or id */
+        const bareRow = (await db.directory.get(mvBare as any)) as any;
+        check(
+          'mkdir: a directory is made without an icon and without sides',
+          bareRow.icon === '' && bareRow.fields.length === 0,
+          JSON.stringify(bareRow)
+        );
+        const lsBare = await run('ls d');
+        check(
+          'ls: a directory without an icon is listed without a gap',
+          lsBare.out.includes(`DIR ${mvBare} MvBare [`) && !lsBare.out.includes(`${mvBare}  MvBare`),
+          lsBare.out
+        );
+        const setIcon = await run('edit MvBare icon:🌎');
+        check(
+          'edit dir: icon: sets the icon of a directory named by its title',
+          setIcon.err === '' &&
+            ((await db.directory.get(mvBare as any)) as any).icon === '🌎' &&
+            setIcon.out.includes('icon: `` -> `🌎`'),
+          setIcon.out + setIcon.err
+        );
+        await run(`edit ${mvBare} icon:🇫🇷`);
+        check(
+          'edit dir: the directory can be named by its id too',
+          ((await db.directory.get(mvBare as any)) as any).icon === '🇫🇷'
+        );
+        const renameMeta = await run('edit MvBare name:`Bare Deck` icon: 1:Q 2:A');
+        const renamed = (await db.directory.get(mvBare as any)) as any;
+        check(
+          'edit dir: name:, icon: and sides together, the id stays, an empty icon takes it away',
+          renameMeta.err === '' &&
+            renamed.title === 'Bare Deck' &&
+            renamed.icon === '' &&
+            renamed.fields.join() === 'Q,A' &&
+            (await dirIn(qoDir, 'Bare Deck')) === mvBare &&
+            (await dirIn(qoDir, 'MvBare')) === '',
+          renameMeta.out + renameMeta.err
+        );
+        const clashName = await run('edit `Bare Deck` name:MvB');
+        const badName = await run('edit `Bare Deck` name:a/b');
+        const emptyName = await run('edit `Bare Deck` name:');
+        const iconTwice = await run('edit `Bare Deck` icon:a icon:b');
+        const onCard = await run(`edit ${mvCard.id} icon:x`);
+        check(
+          'edit dir: a taken title, a / in it, an empty name, a key twice and icon: on a card are errors, nothing changes',
+          clashName.err.includes('already exists') &&
+            badName.err.includes('not allowed') &&
+            emptyName.err.includes('empty') &&
+            iconTwice.err.includes('twice') &&
+            onCard.err.includes('N:value') &&
+            ((await db.directory.get(mvBare as any)) as any).title === 'Bare Deck' &&
+            ((await db.directory.get(mvBare as any)) as any).icon === '',
+          clashName.err + badName.err + emptyName.err + iconTwice.err + onCard.err
+        );
+        const sameName = await run('edit `Bare Deck` name:`Bare Deck`');
+        check(
+          'edit dir: the same title is not a clash with itself',
+          sameName.err === '' && sameName.out.includes('nothing differs'),
+          sameName.out + sameName.err
+        );
+        check(
+          'tab: edit completes the title of a directory',
+          (await tab('edit Bare')) === 'edit `Bare Deck`'
+        );
+
+
+
+
 
         await run('cd ..');
         await this.core.removeDir(qoDir);
@@ -908,7 +1084,7 @@ export class DebugService {
         const byId = (await run('pwd')).out === `/${TEST_TITLE}/Sub Dir`;
         /** back in /__test__ first: mkdir creates in the current directory, which is now Sub Dir */
         await run(`cd /${TEST_TITLE}`);
-        await run(`mkdir 📁 ${subDirId} Q A`);
+        await run(`mkdir ${subDirId} Q A`);
         await run(`cd ${subDirId}`);
         const titleWins = (await run('pwd')).out === `/${TEST_TITLE}/${subDirId}`;
         await run(`cd /${TEST_TITLE}`);

@@ -22,11 +22,23 @@ The system SHALL let `rmdir` take the title of a directory in the current direct
 - **THEN** the terminal prints an error and removes nothing
 
 ### Requirement: Move
-The system SHALL provide `mv <what> <to>` that moves a card or a directory (by id or title) into another directory given by path. The id MUST stay the same.
+The system SHALL provide `mv <what> <where>` that moves one card or one directory, with everything inside it, into another directory. `<what>` is a directory by title or id in the current directory, or a card by id. `<where>` is a path as in `cd` (`Languages`, `..`, `/`, `French/Verbs`, `/French`) or the id of a directory. The ids MUST stay the same, and nothing inside a moved directory changes. Only one thing is moved per command.
+
+#### Scenario: Move a directory by title
+- **WHEN** the user is in `/` and runs `mv French Languages`
+- **THEN** `French` is listed in `Languages` and no longer in `/`, with its id, its cards and its sub-directories unchanged
+
+#### Scenario: Move a directory to the root
+- **WHEN** the user runs `mv French /`
+- **THEN** `French` is listed in the root
+
+#### Scenario: Move by the id of the target
+- **WHEN** the user runs `mv French aB3x` and `aB3x` is the id of a directory
+- **THEN** `French` goes into that directory, wherever it is
 
 #### Scenario: Move a card
 - **WHEN** the user runs `mv <card id> French/Verbs` and the target exists
-- **THEN** the card is listed in `French/Verbs` and no longer in the old directory
+- **THEN** the card is listed in `French/Verbs` and no longer in the old directory, with the same id, sides and learning progress
 
 #### Scenario: Move into itself
 - **WHEN** the user moves a directory into itself or into one of its own sub-directories
@@ -39,6 +51,14 @@ The system SHALL provide `mv <what> <to>` that moves a card or a directory (by i
 #### Scenario: Card into the root
 - **WHEN** the user moves a card to `/`
 - **THEN** the terminal refuses, because cards live in directories
+
+#### Scenario: Card that does not fit
+- **WHEN** the user moves a card into a directory with a different number of sides, or with no sides
+- **THEN** the card is moved and the terminal prints a warning saying how many sides each has
+
+#### Scenario: Nothing to move or nowhere to go
+- **WHEN** the name is not a card or a directory here, the target does not exist, the thing is already in the target, or the number of words is not two
+- **THEN** the terminal prints an error and nothing moves
 
 ### Requirement: Copy
 The system SHALL provide `cp <what> <to>` that copies a card, or a directory with everything inside, into another directory. Every copy MUST get new ids, and copied cards MUST start with fresh learning progress.
@@ -84,6 +104,37 @@ The system SHALL provide `edit <id> <N:value...>` that replaces sides of a card,
 #### Scenario: Read-only side
 - **WHEN** the side is marked read-only (see the field-kinds capability) and the user runs `edit` on it
 - **THEN** the side is changed and the mark stays, because read-only only means "not typed in during study", not "locked against the author"
+
+### Requirement: Directory without an icon
+The system SHALL create a directory with `mkdir <title> [sides...]`, with no icon and with any number of sides including none, so a directory can be only a place for other directories. `edit` SHALL be able to set and take away the icon and to change the title of a directory with the words `icon:X` and `name:X`, next to `N:name` words in the same command. The directory MAY be named by its title or its id. `ls` MUST list a directory without an icon without a gap in its place.
+
+#### Scenario: Make without icon
+- **WHEN** the user runs `mkdir Languages`
+- **THEN** a directory `Languages` exists with no icon and no sides
+
+#### Scenario: Set the icon
+- **WHEN** the user runs `edit Languages icon:🌎`
+- **THEN** the directory has the icon `🌎`, and the same works with the id in place of the title
+
+#### Scenario: Take the icon away
+- **WHEN** the user runs `edit Languages icon:`
+- **THEN** the directory has no icon
+
+#### Scenario: Rename the directory
+- **WHEN** the user runs ``edit Languages name:`My languages` ``
+- **THEN** the title is changed, the id stays, and cards and sub-directories are not touched
+
+#### Scenario: Several at once
+- **WHEN** the user runs `edit Languages name:Tongues icon:🌎 1:Word`
+- **THEN** the title, the icon and the first side are all changed together, or none of them if one is wrong
+
+#### Scenario: Bad title
+- **WHEN** the new title is empty, is `.` or `..`, contains `/`, or is the title of a sibling
+- **THEN** the terminal prints an error and nothing changes; giving a directory its own title is not an error
+
+#### Scenario: Not for cards
+- **WHEN** the user runs `edit <card id> icon:x`
+- **THEN** the terminal prints an error, because a card has only sides
 
 ### Requirement: Editing a card changes nothing else
 Editing a card MUST leave its id, its owner, its learning progress and its question only marks as they were, and MUST NOT change its number of sides. All the changes of one command SHALL be checked before any is made: if one is wrong, none is applied.

@@ -1,4 +1,4 @@
-import { parseEdits } from './edits';
+import { parseDirectoryEdits, parseEdits } from './edits';
 import { tokenize } from './tokenizer';
 
 describe('parseEdits', () => {
@@ -27,5 +27,28 @@ describe('parseEdits', () => {
     expect(() => parseEdits([':x'])).toThrowError(/N:value/);
     expect(() => parseEdits(['-1:x'])).toThrowError(/N:value/);
     expect(() => parseEdits(['1:a', '1:b'])).toThrowError(/twice/);
+  });
+});
+
+describe('parseDirectoryEdits', () => {
+  it('reads icon and name next to the sides', () => {
+    expect(parseDirectoryEdits(tokenize('icon:🌎 name:`My deck` 1:Word'))).toEqual({
+      sides: [{ position: 1, value: 'Word' }],
+      meta: { icon: '🌎', name: 'My deck' },
+    });
+  });
+
+  it('lets icon: be empty to take the icon away, but not name:', () => {
+    expect(parseDirectoryEdits(['icon:']).meta).toEqual({ icon: '' });
+    expect(() => parseDirectoryEdits(['name:'])).toThrowError(/empty/);
+  });
+
+  it('refuses a key given twice and words that are nothing', () => {
+    expect(() => parseDirectoryEdits(['icon:a', 'icon:b'])).toThrowError(/twice/);
+    expect(() => parseDirectoryEdits(['title:x'])).toThrowError(/N:value/);
+  });
+
+  it('has no meta for plain sides', () => {
+    expect(parseDirectoryEdits(['2:x'])).toEqual({ sides: [{ position: 2, value: 'x' }], meta: {} });
   });
 });

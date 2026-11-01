@@ -16,7 +16,7 @@ for example `original`, `transcription`, `translation`.
 "Side" and "field" mean the same thing.
 
 The names are defined by the directory (**implemented**: `Directory.fields`, set with
-`mkdir <icon> <title> <sides...>`), the values are stored in the card
+`mkdir <title> [sides...]`), the values are stored in the card
 (**implemented**: `Card.contents`, positional, one value per field).
 `Card.spec.status` keeps one list per side for the repetition state (**implemented** as
 storage, the scheduler that uses it is **planned**).
@@ -89,6 +89,10 @@ Decisions go here once they are made.
   - the sides after a removed one move up, with their values, their schedule and their question
     only marks; a card that would be left with only question only sides makes the command refuse;
   - a directory and its cards are written in one transaction.
-  The id decides: a card id edits values, a directory id edits sides. If one id is both (ids are
+  - `edit <directory> icon:X` sets the icon, `icon:` with nothing after it takes it away (`mkdir` makes
+    a directory with no icon); `name:X` renames the directory, its id stays, the title must be unique
+    in its directory and can not contain `/`; they can be given together with `N:name` words;
+  A directory is named by its title or its id, a card by its id; a title in the current directory wins,
+  then the id decides: a card id edits values, a directory id edits sides. If one id is both (ids are
   drawn separately for cards and directories), the one in the current directory wins.
 - Not decided yet: whether a directory can also declare a side read-only (`name:ro`), see question 1.

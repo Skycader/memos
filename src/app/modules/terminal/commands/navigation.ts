@@ -59,7 +59,7 @@ export const pwd: TerminalCommand = {
 };
 
 const formatDir = (dir: Directory) =>
-  ` · DIR ${dir.id} ${dir.icon} ${dir.title} [${dir.fields}]`;
+  ` · DIR ${dir.id} ${dir.icon ? dir.icon + ' ' : ''}${dir.title} [${dir.fields}]`;
 
 const formatCard = (card: Card) =>
   ` · CARD ${card.id} owned by ${card.owner} has sides [${card.contents.join()}] next: ${card.next} prev: ${card.prev} SPEC: ${JSON.stringify(card.spec)}`;

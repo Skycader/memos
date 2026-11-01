@@ -34,3 +34,39 @@ export function parseEdits(words: string[]): SideEdit[] {
   }
   return edits;
 }
+
+/** the words of `edit` that are about the directory itself and not about its sides */
+export interface DirMeta {
+  /** the new icon, '' takes it away */
+  icon?: string;
+  /** the new title */
+  name?: string;
+}
+
+/**
+ * Read the words of `edit` for a directory: `N:name` for sides, `icon:X` and `name:X` for the
+ * directory itself. They may be given together, each at most once
+ *
+ * icon:🌎        ->  meta.icon = '🌎'
+ * icon:          ->  meta.icon = ''            (no icon)
+ * name:`My deck` ->  meta.name = 'My deck'
+ * 1:Word 2:Tip   ->  sides, as in parseEdits
+ *
+ * @throws Error if a word is none of these, or one of them is given twice
+ */
+export function parseDirectoryEdits(words: string[]): { sides: SideEdit[]; meta: DirMeta } {
+  const meta: DirMeta = {};
+  const sideWords: string[] = [];
+  for (const word of words) {
+    const match = /^(icon|name):([\s\S]*)$/.exec(word);
+    if (!match) {
+      sideWords.push(word);
+      continue;
+    }
+    const key = match[1] as keyof DirMeta;
+    if (meta[key] !== undefined) throw new Error(`${key}: is given twice`);
+    meta[key] = match[2];
+  }
+  if (meta.name === '') throw new Error('The name of a directory can not be empty');
+  return { sides: parseEdits(sideWords), meta };
+}

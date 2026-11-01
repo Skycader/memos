@@ -1,28 +1,32 @@
-import { parseEdits } from '../services/edits';
+import { parseDirectoryEdits, parseEdits } from '../services/edits';
+import { sidesWarning } from '../services/move';
 import { parseSides } from '../services/sides';
-import { TerminalCommand } from './command';
+import { CommandContext, TerminalCommand } from './command';
 
 export const mkdir: TerminalCommand = {
   name: 'mkdir',
   group: 'edit',
-  usage: 'mkdir <icon> <title> <sides...>',
+  usage: 'mkdir <title> [sides...]',
   description: 'create a directory',
   why:
     'A directory is a deck: it holds cards and other directories. The sides you name here ' +
-    'are the sides every card in it has, for example Original and Translation.',
+    'are the sides every card in it has, for example Original and Translation. A directory ' +
+    'that only holds other directories needs no sides.',
   examples: [
-    'mkdir 🇫🇷 French Original Translation  # two sides',
-    'mkdir 🇫🇷 `My French` Original Translation  # backticks for a title with spaces',
-    'mkdir 🎓 Words Original Transcription Translation  # three sides',
+    'mkdir French Original Translation  # two sides',
+    'mkdir `My French` Original Translation  # backticks for a title with spaces',
+    'mkdir Words Original Transcription Translation  # three sides',
+    'mkdir Languages  # no sides: a place for other directories',
   ],
   notes: [
     'The directory is created in the current one (see pwd); use cd to choose where',
     'A title must be unique within its directory and can not contain /',
+    'It has no icon; give one with edit <title> icon:🌎',
   ],
   async run(args, ctx) {
-    const [icon, title, ...sides] = args;
-    if (!icon || !title) throw new Error('Usage: mkdir <icon> <title> <sides...>');
-    await ctx.core.mkdir(ctx.terminal.getCDI(), icon, title, sides);
+    const [title, ...sides] = args;
+    if (!title) throw new Error('Usage: mkdir <title> [sides...]');
+    await ctx.core.mkdir(ctx.terminal.getCDI(), '', title, sides);
   },
 };
 
@@ -62,8 +66,8 @@ export const touch: TerminalCommand = {
 export const edit: TerminalCommand = {
   name: 'edit',
   group: 'edit',
-  usage: 'edit <id> <N:value...>',
-  description: 'change sides of a card or of a directory',
+  usage: 'edit <id or title> <N:value | icon:X | name:X ...>',
+  description: 'change a card, or the sides, icon and name of a directory',
   why:
     'Fixes a card or a directory without removing it and typing it again. A side is named by its ' +
     'place, counted from 1: 1 is the first side, 2 the second, and so on. The id of a card changes ' +
@@ -79,9 +83,15 @@ export const edit: TerminalCommand = {
     'edit aB3x 3:Email  # directory: add a third side, every card gets an empty one',
     'edit aB3x 3:empty  # take side 3 out, only if no card has a value in it',
     'edit aB3x 3:drop  # take side 3 out with its values in all cards (asks to confirm)',
+    'edit French icon:🇨🇵  # directory by its title: give it an icon',
+    'edit French icon:  # nothing after the colon: no icon',
+    'edit French name:`My French`  # rename the directory itself, the id stays',
+    'edit French name:Francais icon:🇫🇷 1:Mot  # all together, in one step',
   ],
   notes: [
-    'The id is shown by ls (ls c for cards, ls d for directories); Tab completes it',
+    'A directory is named by its title or its id, a card by its id; ls shows them (ls c for cards, ls d for directories); Tab completes them',
+    'Numbers are the sides (of a card: its values; of a directory: their names); icon: and name: are the directory itself and are not for cards',
+    'Directory: icon: sets the icon, nothing after the colon takes it away; name: sets the title, which must be unique in its directory and can not contain /',
     'Card: only the sides you name change; the id, the schedule and the question only marks stay',
     'Card: it has as many sides as its directory, edit does not add or remove them (edit the directory)',
     'Card: a side that is question only (touch ?) can be changed too',
@@ -95,15 +105,20 @@ export const edit: TerminalCommand = {
     'There is no undo: the old values are printed so they can be put back; export first if in doubt',
   ],
   async run(args, ctx) {
-    const [id, ...words] = args;
-    if (!id || words.length === 0)
-      throw new Error('Usage: edit <id> <N:value...> (see ids in ls)');
+    const [what, ...words] = args;
+    if (!what || words.length === 0)
+      throw new Error('Usage: edit <id or title> <N:value | icon:X | name:X ...> (see ids in ls)');
 
-    const kind = await ctx.core.whatIs(id, ctx.terminal.getCDI());
-    if (kind === undefined) throw new Error(`There is no card or directory with the id ${id}`);
-    const edits = parseEdits(words);
+    /** a directory is named by its title or id; a title in this directory wins, as in cd */
+    const here = ctx.terminal.getCDI();
+    const titled = (await ctx.core.lsdir(here, 0)).find((dir) => dir.title === what);
+    const kind = titled ? 'dir' : await ctx.core.whatIs(what, here);
+    if (kind === undefined)
+      throw new Error(`There is no card or directory "${what}" here (see ls; a card is named by its id)`);
+    const id = titled?.id ?? what;
 
     if (kind === 'card') {
+      const edits = parseEdits(words);
       const { before, after } = await ctx.core.editCard(id, edits);
       const lines = after
         .map((value, index) => ({ value, index }))
@@ -119,6 +134,7 @@ export const edit: TerminalCommand = {
     }
 
     /** a directory: look first, ask if values are going to be erased, then do it */
+    const { sides: edits, meta } = parseDirectoryEdits(words);
     const plan = await ctx.core.planDirectory(id, edits);
     const erasing = plan.removed.filter((side) => side.mode === 'drop');
     if (erasing.length > 0) {
@@ -139,8 +155,15 @@ export const edit: TerminalCommand = {
       }
     }
 
-    const done = await ctx.core.editDirectory(id, edits);
+    const before = await ctx.core.dir(id);
+    const done = await ctx.core.editDirectory(id, edits, meta);
     const report = [
+      ...(meta.name !== undefined && meta.name !== before?.title
+        ? [`  name: ${show(before?.title ?? '')} -> ${show(meta.name)}`]
+        : []),
+      ...(meta.icon !== undefined && meta.icon !== before?.icon
+        ? [`  icon: ${show(before?.icon ?? '')} -> ${show(meta.icon)}`]
+        : []),
       ...done.renamed.map((side) => `  side ${side.position}: ${show(side.from)} -> ${show(side.to)}`),
       ...done.added.map(
         (side) =>
@@ -157,7 +180,7 @@ export const edit: TerminalCommand = {
     ctx.out(
       [
         `Edited directory ${id}: [${done.fields.join(', ')}]`,
-        ...(report.length > 0 ? report : ['  nothing differs: the names were the same']),
+        ...(report.length > 0 ? report : ['  nothing differs: the values were the same']),
       ].join('\n')
     );
   },
@@ -165,11 +188,9 @@ export const edit: TerminalCommand = {
     /** only the first word is an id: after it come N:value words, which have nothing to complete */
     if (/^\d+:/.test(partial)) return [];
     const here = ctx.terminal.getCDI();
-    const ids = [
-      ...(await ctx.core.cardIds(here)),
-      ...(await ctx.core.lsdir(here, 0)).map((dir) => dir.id),
-    ];
-    return ids.filter((id) => id.startsWith(partial));
+    const dirs = await ctx.core.lsdir(here, 0);
+    const names = [...(await ctx.core.cardIds(here)), ...dirs.map((dir) => dir.id), ...dirs.map((dir) => dir.title)];
+    return names.filter((name) => name.startsWith(partial));
   },
 };
 
@@ -234,3 +255,88 @@ export const rmdir: TerminalCommand = {
     return dirs.map((dir) => dir.id).filter((id) => id.startsWith(partial));
   },
 };
+
+export const mv: TerminalCommand = {
+  name: 'mv',
+  group: 'edit',
+  usage: 'mv <card or directory> <directory>',
+  description: 'move a card or a directory into another directory',
+  why:
+    'Puts a card or a whole directory (with everything inside it) in another place without ' +
+    'typing it again. The ids do not change, so nothing that points at them breaks. ' +
+    'One thing at a time: the first word is what moves, the second is where to.',
+  examples: [
+    'mv French Languages  # the directory French goes into Languages',
+    'mv aB3x Languages  # the same, by the id that ls shows',
+    'mv Lzad French/Verbs  # a card (by id) goes into French/Verbs',
+    'mv Lzad kT9p  # the target can be the id of a directory too, wherever it is',
+    'mv French /  # a directory goes to the root',
+    'mv Verbs ..  # one level up',
+  ],
+  notes: [
+    'What moves: a directory by its title or id, as ls shows them in the current directory; a card by its id',
+    'Where to: a path, as in cd (a name, .., /, French/Verbs, /French), or the id of a directory',
+    'A card can not go to the root (/): cards live in directories',
+    'A directory can not go into itself or into a directory inside it',
+    'A directory can not go where there is a directory with the same title',
+    'A card is moved even if its sides do not match the sides of the directory, but you get a warning',
+    'A directory is moved with its cards and sub-directories; nothing inside it changes',
+    'Tab completes names and ids; it does not tell the first word from the second, so it offers both',
+  ],
+  async run(args, ctx) {
+    if (args.length !== 2) throw new Error('Usage: mv <card or directory> <directory> (see ids in ls)');
+    const [what, where] = args;
+    const here = ctx.terminal.getCDI();
+
+    /** a directory is named by its title or id; a title in this directory wins, as in cd */
+    const titled = (await ctx.core.lsdir(here, 0)).find((dir) => dir.title === what);
+    const kind = titled ? 'dir' : await ctx.core.whatIs(what, here);
+    if (kind === undefined)
+      throw new Error(`There is no card or directory "${what}" here (see ls; a card is named by its id)`);
+    const id = titled?.id ?? what;
+
+    const to = await targetOf(where, ctx);
+    if (kind === 'dir') {
+      await ctx.core.moveDir(id, to);
+      /** the directory we stand in may have moved, and the path we hold is the old one */
+      await ctx.terminal.revalidate();
+      ctx.out(`Moved directory ${what} to ${await ctx.core.pathOf(to)}`);
+      return;
+    }
+
+    const { target, sides } = await ctx.core.moveCard(id, to);
+    ctx.out(`Moved card ${id} to ${await ctx.core.pathOf(to)}`);
+
+    const warning = sidesWarning(sides, target.title, target.fields);
+    if (warning) ctx.out(warning);
+  },
+  async complete(partial, ctx) {
+    const cut = partial.lastIndexOf('/') + 1;
+    const base = partial.slice(0, cut);
+    const rest = partial.slice(cut);
+    try {
+      const dir = base ? await ctx.terminal.resolve(ctx.terminal.getPath(), base) : ctx.terminal.getPath();
+      const owner = dir.at(-1)?.id ?? '/';
+      const dirs = (await ctx.core.lsdir(owner, 0)).map((item) => item.title);
+      /** ids of cards and of directories are only offered for a word that is not a path */
+      const ids = base ? [] : [...(await ctx.core.cardIds(owner)), ...(await ctx.core.lsdir(owner, 0)).map((item) => item.id)];
+      return [...dirs, ...ids].filter((name) => name.startsWith(rest)).map((name) => base + name);
+    } catch {
+      return [];
+    }
+  },
+};
+
+/**
+ * Where a directory or a card is going: a path as in cd, or the id of a directory anywhere
+ * @returns the id of the directory, '/' for the root
+ */
+async function targetOf(where: string, ctx: CommandContext): Promise<string> {
+  try {
+    const path = await ctx.terminal.resolve(ctx.terminal.getPath(), where);
+    return path.at(-1)?.id ?? '/';
+  } catch (error) {
+    if (!where.includes('/') && (await ctx.core.dir(where)) !== undefined) return where;
+    throw error;
+  }
+}

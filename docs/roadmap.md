@@ -149,7 +149,7 @@ DIR  -> 📁
 CARD -> 📄
 ```
 
-(the directory's own icon, the one set by `mkdir`, is shown next to the title today; this would
+(the directory's own icon, the one set by `edit <dir> icon:X`, is shown next to the title today; this would
 replace the word `DIR`/`CARD` at the start of the line, not that icon). Not started, the author is not
 ready to take it in yet. Things to think about when it is built:
 
