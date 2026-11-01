@@ -1,0 +1,35 @@
+schema: spec-driven
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+context: |
+  Memos is an Angular 17 + Dexie spaced-repetition app driven by a unix-like terminal (alpha). Read docs/welcome.md first.
+  Chat with the owner in Russian; code, comments, docs, specs and commit messages are in English.
+  A new terminal command is one TerminalCommand object registered in commands/index.ts and needs `why` and `examples`.
+  Core first, terminal second: commands call the core, never the database directly.
+  Everything is self-hosted: nothing may load from the outside at run time.
+  Keep the in-app `test` command green and add checks for what changes.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

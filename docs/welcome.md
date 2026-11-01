@@ -89,7 +89,9 @@ npx ng build                                # production build (output in dist/,
 - The owner usually has the dev server already running on port 3500 (live reload). Check the port
   before starting another one.
 - **The real test is the `test` command**, typed in the app. It prints `✔` / `✖` per check and
-  `N passed, M failed` (about a hundred checks). `npm test` (Karma) is **known broken**, ignore it.
+  `N passed, M failed` (about a hundred checks). `npm test` (Karma) works too: 12 specs, all green, but
+  they are mostly "should create" skeletons, so they do not replace `test`. Headless run (Windows):
+  ``set CHROME_BIN=C:\Program Files\Google\Chrome\Application\chrome.exe&& npx ng test --watch=false --browsers=ChromeHeadless``.
 - With a browser tool you can run it without typing:
   `await ng.getComponent(document.querySelector('app-terminal')).shell.capture('test')` returns
   `{ out, err }`. `shell.capture('<any command line>')` runs any command the same way. After changing a
@@ -100,7 +102,8 @@ npx ng build                                # production build (output in dist/,
 - **Empty modules** (`backup`, `browser`, `core`, `debug`, `math`, `menu`, `repeat`) are scaffolding for
   the future. They are not dead code.
 - **SSR is kept** (it works and does no harm), even though the app is browser-only.
-- **Karma specs are the Angular defaults and fail.** Postponed; `test` inside the app is the suite.
+- **Karma specs are the Angular defaults, mostly empty skeletons.** They pass now (the `AppComponent` and
+  `TerminalComponent` specs were fixed), but `test` inside the app is still the real suite.
 - **Words with spaces are grouped with backticks**, not double quotes: ``touch `Un chat` `A cat` ``.
   A double quote is an ordinary character. The grouping character is the constant `QUOTE`.
 - **A bare `cd` goes to `/`** (no home directory). `cd` takes a title or an id; the title wins.
