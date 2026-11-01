@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CoreService } from '../../core/services/core.service';
-import { AppDB, db, wipe } from '../../database/services/db';
+import { AppDB, Card, db, wipe } from '../../database/services/db';
 import { MathService } from '../../math/services/math.service';
 import { FontService } from '../../core/services/font.service';
 import { parseCsv, toCsv } from '../../exchange/csv';
@@ -695,6 +695,194 @@ export class DebugService {
           'help touch: shows the ? example',
           (await run('help touch')).out.includes('touch ?`Un chat` `A cat`')
         );
+        /** edit <id> N:value: sides are counted from 1, the rest of the card stays */
+        const chat = qoByFirst('Un chat') as Card;
+        const editOne = await run(`edit ${chat.id} 2:\`A dog\``);
+        const afterOne = (await db.card.get(chat.id as any)) as Card;
+        check(
+          'edit: changes one side by its place counted from 1, the others and the schedule stay',
+          editOne.err === '' &&
+            JSON.stringify(afterOne.contents) === '["Un chat","A dog","plain"]' &&
+            JSON.stringify(afterOne.spec) === JSON.stringify(chat.spec) &&
+            afterOne.next === chat.next &&
+            afterOne.prev === chat.prev &&
+            afterOne.owner === chat.owner &&
+            editOne.out.includes('side 2: `A cat` -> `A dog`'),
+          editOne.out + editOne.err + JSON.stringify(afterOne.contents)
+        );
+        const editMany = await run(`edit ${chat.id} 1:chien 3:`);
+        const afterMany = (await db.card.get(chat.id as any)) as Card;
+        check(
+          'edit: several sides at once, an empty value empties the side, question only mark stays',
+          editMany.err === '' &&
+            JSON.stringify(afterMany.contents) === '["chien","A dog",""]' &&
+            JSON.stringify(afterMany.spec.qfields) === '[0]',
+          JSON.stringify(afterMany.contents)
+        );
+        await run(`edit ${chat.id} 2:10:30`);
+        check(
+          'edit: only the first colon counts, the value keeps the others',
+          ((await db.card.get(chat.id as any)) as Card).contents[1] === '10:30'
+        );
+        const editBad = await run(`edit ${chat.id} 1:changed 9:nope`);
+        check(
+          'edit: a place past the last side is an error and nothing is changed, not even the good sides',
+          editBad.err.includes('no side 9') &&
+            ((await db.card.get(chat.id as any)) as Card).contents[0] === 'chien',
+          editBad.err
+        );
+        check(
+          'edit: unknown id, no changes, side 0, a word without N: and a repeated side are errors',
+          (await run('edit zzzz 1:x')).err.includes('no card') &&
+            (await run(`edit ${chat.id}`)).err.includes('Usage: edit') &&
+            (await run('edit')).err.includes('Usage: edit') &&
+            (await run(`edit ${chat.id} 0:x`)).err.includes('from 1') &&
+            (await run(`edit ${chat.id} hello`)).err.includes('N:value') &&
+            (await run(`edit ${chat.id} 1:a 1:b`)).err.includes('twice') &&
+            ((await db.card.get(chat.id as any)) as Card).contents[0] === 'chien'
+        );
+        /**
+         * edit <directory id>: names of sides, add a side, take one out (empty / drop)
+         */
+        const cardsOf = async () =>
+          (await db.card.where('owner').equals(qoDir).toArray()).map((card) => ({
+            id: card.id,
+            contents: [...card.contents],
+            qfields: card.spec.qfields,
+            status: card.spec.status.length,
+          }));
+        const dirFields = async () => ((await db.directory.get(qoDir as any)) as any).fields as string[];
+        const dirBefore = JSON.stringify(await cardsOf());
+        const dirHas = async () => JSON.stringify(await dirFields());
+
+        const renameSides = await run(`edit ${qoDir} 1:Front 2:\`Back side\``);
+        check(
+          'edit dir: renames sides by place, the cards are not touched',
+          renameSides.err === '' &&
+            (await dirHas()) === '["Front","Back side","Extra"]' &&
+            JSON.stringify(await cardsOf()) === dirBefore,
+          renameSides.out + renameSides.err + (await dirHas())
+        );
+
+        const addSide = await run(`edit ${qoDir} 4:Note`);
+        const withNote = await cardsOf();
+        check(
+          'edit dir: adds a side after the last one, every card gets an empty value for it',
+          addSide.err === '' &&
+            (await dirHas()) === '["Front","Back side","Extra","Note"]' &&
+            withNote.every((card) => card.contents.length === 4 && card.contents[3] === '') &&
+            withNote.every((card) => card.status === 4),
+          addSide.out + addSide.err
+        );
+        check(
+          'edit dir: a place that is skipped is an error and nothing changes',
+          (await run(`edit ${qoDir} 9:Nope`)).err.includes('place 5') &&
+            (await dirHas()) === '["Front","Back side","Extra","Note"]'
+        );
+
+        /** side 4 holds nothing yet: empty takes it out and says ✓ Clear */
+        const clearSide = await run(`edit ${qoDir} 4:empty`);
+        check(
+          'edit dir: N:empty takes out a side no card has a value in and says ✓ Clear',
+          clearSide.err === '' &&
+            clearSide.out.includes('✓ Clear') &&
+            (await dirHas()) === '["Front","Back side","Extra"]' &&
+            (await cardsOf()).every((card) => card.contents.length === 3),
+          clearSide.out + clearSide.err
+        );
+
+        /** side 3 has values in some cards: empty keeps the side and counts them */
+        const keepSide = await run(`edit ${qoDir} 3:empty`);
+        const withThird = (await cardsOf()).filter((card) => (card.contents[2] ?? '') !== '').length;
+        check(
+          'edit dir: N:empty keeps a side some card has a value in, says how many, changes nothing',
+          withThird > 0 &&
+            keepSide.err.includes(`${withThird} card`) &&
+            keepSide.err.includes('3:drop') &&
+            (await dirHas()) === '["Front","Back side","Extra"]' &&
+            (await cardsOf()).every((card) => card.contents.length === 3),
+          keepSide.err
+        );
+
+        check(
+          'edit dir: the first two sides can not be removed, by empty or by drop',
+          (await run(`edit ${qoDir} 2:empty`)).err.includes('at least two') &&
+            (await run(`edit ${qoDir} 1:drop`)).err.includes('at least two') &&
+            (await dirHas()) === '["Front","Back side","Extra"]'
+        );
+        check(
+          'edit dir: an empty name and N:empty past the last side are errors',
+          (await run(`edit ${qoDir} 2:`)).err.includes('can not be empty') &&
+            (await run(`edit ${qoDir} 7:empty`)).err.includes('no side 7')
+        );
+
+        /** drop asks to confirm: any answer but drop cancels */
+        const cardsBeforeDrop = JSON.stringify(await cardsOf());
+        const noAnswer = await run(`edit ${qoDir} 3:drop`);
+        const wrongAnswer = await shell.capture(`edit ${qoDir} 3:drop`, ['yes']);
+        check(
+          'edit dir: N:drop asks to type drop; no answer or another word cancels and changes nothing',
+          noAnswer.out.includes('Type drop to confirm') &&
+            noAnswer.out.includes('Cancelled') &&
+            wrongAnswer.out.includes('Cancelled') &&
+            (await dirHas()) === '["Front","Back side","Extra"]' &&
+            JSON.stringify(await cardsOf()) === cardsBeforeDrop,
+          noAnswer.out + wrongAnswer.out
+        );
+
+        const dropSide = await shell.capture(`edit ${qoDir} 3:drop`, ['drop']);
+        const afterDrop = await cardsOf();
+        check(
+          'edit dir: N:drop with the answer drop takes the side out of the directory and of every card',
+          dropSide.err === '' &&
+            dropSide.out.includes(`${withThird} card`) &&
+            (await dirHas()) === '["Front","Back side"]' &&
+            afterDrop.length === 4 &&
+            afterDrop.every((card) => card.contents.length === 2 && card.status === 2),
+          dropSide.out + dropSide.err
+        );
+        check(
+          'edit dir: the other sides, the ids and the question only marks of the cards are kept',
+          afterDrop.find((card) => card.contents[0] === 'chien')?.contents.join('|') === 'chien|10:30' &&
+            JSON.stringify(afterDrop.find((card) => card.contents[0] === 'chien')?.qfields) === '[0]'
+        );
+        /**
+         * drop asks to confirm. Only the refusals are run here: a confirmed drop would erase
+         * the whole database, the user's data included, and there is no scratch database to
+         * run it in yet (see the db command in the roadmap), so it is not tested by `test`
+         */
+        const rowsBeforeDrop =
+          (await db.directory.count()) * 100000 + (await db.card.count());
+        const dropNoAnswer = await run('drop');
+        const dropWrong = await shell.capture('drop', ['yes']);
+        const dropNearly = await shell.capture('drop', ['drop it']);
+        const dropArgs = await run('drop now');
+        check(
+          'drop: asks to type drop; no answer, another word or extra arguments erase nothing',
+          dropNoAnswer.out.includes('Type drop to confirm') &&
+            dropNoAnswer.out.includes('Cancelled') &&
+            !dropNoAnswer.out.includes('Database erased') &&
+            dropWrong.out.includes('Cancelled') &&
+            dropNearly.out.includes('Cancelled') &&
+            dropArgs.err.includes('Usage: drop') &&
+            (await db.directory.count()) * 100000 + (await db.card.count()) === rowsBeforeDrop,
+          dropNoAnswer.out + dropWrong.out + dropNearly.out + dropArgs.err
+        );
+        check(
+          'help drop: says that it asks to confirm',
+          (await run('help drop')).out.includes('Type drop to confirm') &&
+            (await run('help')).out.includes('erase the WHOLE database (asks to confirm)')
+        );
+        check(
+          'edit: an id that is nothing is an error',
+          (await run('edit zzzz 1:x')).err.includes('no card or directory')
+        );
+        check(
+          'tab: edit completes the id of a card in the current directory',
+          (await tab(`edit ${chat.id.slice(0, 3)}`)) === `edit ${chat.id}` &&
+            (await tabOptions(`edit 1:`)).length === 0
+        );
+
         await run('cd ..');
         await this.core.removeDir(qoDir);
 

@@ -23,8 +23,12 @@ export interface Output {
  * and complete a half-typed one like Tab does
  */
 export interface ShellRunner {
-  /** run a command line and collect what it printed */
-  capture(line: string): Promise<{ out: string; err: string }>;
+  /**
+   * run a command line and collect what it printed
+   * @param answers what the user types if the command asks a question, one line per question;
+   * a question with no answer left is answered with an empty line, so a test never hangs
+   */
+  capture(line: string, answers?: string[]): Promise<{ out: string; err: string }>;
   /** what Tab does to the typed text: the completed text, and the options if there are several */
   complete(buffer: string): Promise<{ buffer: string; options: string[] }>;
 }
@@ -33,6 +37,11 @@ export interface ShellRunner {
  * Everything a command gets to work with
  */
 export interface CommandContext extends Output, ShellRunner {
+  /**
+   * Ask the user a question and wait for the next line they type.
+   * Prints the question, returns the line as typed. Used to confirm what can not be undone
+   */
+  ask(question: string): Promise<string>;
   /** session: current directory and navigation */
   terminal: TerminalService;
   core: CoreService;

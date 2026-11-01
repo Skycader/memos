@@ -3,6 +3,7 @@ import { DatabaseService } from '../../database/services/database.service';
 import { MathService } from '../../math/services/math.service';
 import { Card, Directory } from '../../database/services/db';
 import { Removed } from '../../database/services/remove.service';
+import { applyPlanToCard, DirChange, DirPlan, planDirectoryEdit } from '../models/directory-edit';
 import { CardSPEC } from '../models/spec.model';
 
 /** how many items one page of a listing holds */
@@ -207,6 +208,86 @@ export class CoreService {
    */
   public async removeCard(id: string): Promise<number> {
     return await this.db.remove.cardById(id);
+  }
+
+  /**
+   * Change sides of a card. The sides are an array, so a side is named by its place,
+   * counted from 1 as people count. The number of sides stays the same, and so do the
+   * id, the owner, the schedule and the marks of question only sides
+   * @param changes place (from 1) and the new value of each side to change
+   * @returns the sides as they were and as they are now
+   * @throws Error if there is no such card, there is nothing to change, or a place is past the last side
+   */
+  public async editCard(
+    id: string,
+    changes: { position: number; value: string }[]
+  ): Promise<{ before: string[]; after: string[] }> {
+    if (changes.length === 0) throw new Error('There is nothing to change');
+
+    const result = await this.db.update.cardContents(id, (contents) => {
+      for (const { position, value } of changes) {
+        if (position < 1 || position > contents.length)
+          throw new Error(
+            `The card has ${contents.length} side${contents.length === 1 ? '' : 's'}: ` +
+              `there is no side ${position}`
+          );
+        contents[position - 1] = value;
+      }
+      return contents;
+    });
+    if (result === undefined) throw new Error(`There is no card with the id ${id}`);
+    return { before: result.before.contents, after: result.after.contents };
+  }
+
+  /**
+   * What an id names: ids are drawn for cards and for directories separately,
+   * so one id can belong to both. The one in the given directory wins then
+   * @param here the directory the user is in
+   * @throws Error if the id fits a card and a directory and neither lies in `here`
+   */
+  public async whatIs(id: string, here: string): Promise<'card' | 'dir' | undefined> {
+    const card = (await this.db.get.cardById(id))[0];
+    const dir = (await this.db.get.dirById(id))[0];
+    if (card && dir) {
+      if (card.owner === here && dir.owner !== here) return 'card';
+      if (dir.owner === here && card.owner !== here) return 'dir';
+      throw new Error(`The id ${id} is both a card and a directory: cd next to the one you mean`);
+    }
+    return card ? 'card' : dir ? 'dir' : undefined;
+  }
+
+  /**
+   * See what a change of the sides of a directory would do, without doing it
+   * @param changes place (from 1) and the new name of each side, or `empty` / `drop` to take it out
+   * @throws Error if there is no such directory or the change is not allowed
+   */
+  public async planDirectory(id: string, changes: DirChange[]): Promise<DirPlan> {
+    const dir = (await this.db.get.dirById(id))[0];
+    if (!dir) throw new Error(`There is no directory with the id ${id}`);
+    return planDirectoryEdit(dir.fields, await this.db.get.allCardsByOwner(id), changes);
+  }
+
+  /**
+   * Change the sides of a directory and, in step with it, the sides of all its cards:
+   * a side added gives every card an empty value, a side taken out is taken out of every card.
+   * The check is made again inside the transaction, on the data as it is at that moment,
+   * and everything is written together or not at all
+   * @returns what was done
+   */
+  public async editDirectory(id: string, changes: DirChange[]): Promise<DirPlan> {
+    let plan: DirPlan | undefined;
+    const dir = await this.db.update.directoryWithCards(id, (current, cards) => {
+      plan = planDirectoryEdit(current.fields, cards, changes);
+      const done = plan;
+      const changed = cards
+        .map((card) => ({ card, next: applyPlanToCard(card, done) }))
+        .filter(({ card, next }) => next !== card)
+        .map(({ next }) => next);
+      return { fields: done.fields, cards: changed };
+    });
+    if (dir === undefined || plan === undefined)
+      throw new Error(`There is no directory with the id ${id}`);
+    return plan;
   }
 
   /**

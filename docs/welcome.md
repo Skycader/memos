@@ -24,7 +24,7 @@ a **terminal in the browser**. Angular 17 + Dexie (IndexedDB), no backend, no ex
 - Two things: **directories** (decks, they nest, like a file system) and **cards** (live in
   directories; they have named fields called sides: `original`, `transcription`, `translation`...).
   Details and the planned field kinds (read-only, tip) are in [domain.md](domain.md).
-- You work with it by typing commands: `cd`, `ls`, `mkdir`, `touch`, `rm`, `rmdir`, `export`,
+- You work with it by typing commands: `cd`, `ls`, `mkdir`, `touch`, `edit`, `rm`, `rmdir`, `export`,
   `import`, `seed`, `test`, `doctor`, `theme`, `font`, `help`... Type `help` for the current list,
   `help <command>` for one command. The list is generated from the code, it is not written here.
 - **Not built yet:** the repetition itself. There is no `study` command and no scheduler; cards only
@@ -107,7 +107,12 @@ npx ng build                                # production build (output in dist/,
 - **Words with spaces are grouped with backticks**, not double quotes: ``touch `Un chat` `A cat` ``.
   A double quote is an ordinary character. The grouping character is the constant `QUOTE`.
 - **A bare `cd` goes to `/`** (no home directory). `cd` takes a title or an id; the title wins.
-- **No confirmation** for `rmdir`, `rm`, `drop` (the owner's choice); `export` first if in doubt.
+- **No confirmation** for `rmdir` and `rm` (the owner's choice); `export` first if in doubt.
+  **Confirmation is asked** where a lot goes at once: `drop` and `edit <dir> N:drop` print
+  `Type drop to confirm` and wait for the next line; anything but `drop` cancels. A command asks with
+  `ctx.ask(question)`; while it waits, the next typed line is the answer, not a command, and it does not
+  go to the history. In tests `shell.capture(line, ['drop'])` gives the answers; with none, the answer
+  is an empty line, so a test never hangs and never erases anything by accident.
 - **`lsd`, `lsdir`, `dir` were removed**: `ls d` replaces them.
 - `touch` in the root is refused: cards live in directories.
 - The color theme and the font live in `localStorage`, not in the database, so `drop` keeps them.

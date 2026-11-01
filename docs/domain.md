@@ -75,4 +75,20 @@ Decisions go here once they are made.
   `Card.spec.qfields`; a card with no marked side has no `qfields`, as before.
 - `??` at the start is one literal `?` (`??why` is the side `?why`); a side that is only `?` is ordinary.
 - At least one side must stay unmarked: it is the answer. A card with every side marked is refused.
+- `edit <id> N:value` changes a side of a card by its place counted from 1; a question only side can
+  be edited too, and the mark stays.
+- `edit <directory id> N:name` works on the sides of a directory, and keeps its cards in step:
+  - a name at a place that exists renames the side; the cards go by place, so they are not touched;
+  - a name at the place right after the last side adds one, every card gets an empty value for it
+    (and an empty schedule); a place can not be skipped;
+  - `N:empty` takes the side out only if no card has a value in it (then it prints `✓ Clear`);
+    otherwise the side stays and the command says how many cards have a value;
+  - `N:drop` takes the side out and erases it from every card; it shows how many cards lose a value
+    and waits for `drop` to be typed. Anything else cancels;
+  - the first two sides can not be removed: a card has at least two;
+  - the sides after a removed one move up, with their values, their schedule and their question
+    only marks; a card that would be left with only question only sides makes the command refuse;
+  - a directory and its cards are written in one transaction.
+  The id decides: a card id edits values, a directory id edits sides. If one id is both (ids are
+  drawn separately for cards and directories), the one in the current directory wins.
 - Not decided yet: whether a directory can also declare a side read-only (`name:ro`), see question 1.

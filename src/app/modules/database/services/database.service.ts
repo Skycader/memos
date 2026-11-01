@@ -3,6 +3,7 @@ import { AddService } from './add.service';
 import { db, wipe } from './db';
 import { GetService } from './get.service';
 import { RemoveService } from './remove.service';
+import { UpdateService } from './update.service';
 
 @Injectable({
   providedIn: 'root',
@@ -21,12 +22,14 @@ export class DatabaseService {
    * db.add.dir(id, owner, icon, title, fields)
    * db.get.dirByOwner(owner)
    * db.remove.dirById(id)   (removes everything inside too, in one transaction)
+   * db.update.cardContents(id, change)   (changes the sides of a card, in one transaction)
    */
 
   constructor(
     public add: AddService,
     public get: GetService,
-    public remove: RemoveService
+    public remove: RemoveService,
+    public update: UpdateService
   ) {}
 
   /**

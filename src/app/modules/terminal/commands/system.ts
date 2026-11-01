@@ -185,11 +185,29 @@ export const drop: TerminalCommand = {
   name: 'drop',
   group: 'system',
   usage: 'drop',
-  description: 'erase the WHOLE database (no confirmation!)',
+  description: 'erase the WHOLE database (asks to confirm)',
   why: 'Erases everything in the current database, all directories and cards, for a fresh start.',
-  examples: ['drop'],
-  notes: ['There is no confirmation and no undo: export first if in doubt'],
+  examples: [
+    'drop  # asks you to type drop to confirm',
+    'drop  # then type: drop',
+  ],
+  notes: [
+    'Asks "Type drop to confirm"; any other answer cancels and nothing is erased',
+    'There is no undo: export first if in doubt',
+    'Your theme and font are kept',
+  ],
   async run(args, ctx) {
+    if (args.length > 0) throw new Error('Usage: drop');
+
+    const answer = await ctx.ask(
+      'This erases ALL directories and cards of the current database, for good.\n' +
+        'Type drop to confirm:'
+    );
+    if (answer.trim() !== 'drop') {
+      ctx.out('Cancelled: nothing was erased');
+      return;
+    }
+
     await ctx.core.drop();
     ctx.terminal.setPath([]);
     ctx.out('Database erased');

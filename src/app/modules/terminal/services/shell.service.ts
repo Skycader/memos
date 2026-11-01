@@ -33,10 +33,42 @@ export class ShellService {
     private seed: SeedService
   ) {}
 
+  /** set while a command waits for the user to type an answer, see ask */
+  private waiting: ((line: string) => void) | null = null;
+
+  /**
+   * Is a command waiting for an answer? Then the next line typed is that answer,
+   * not a command: the view hands it over with answer()
+   */
+  public get asking(): boolean {
+    return this.waiting !== null;
+  }
+
+  /**
+   * The line the user typed to answer a question of a command
+   */
+  public answer(line: string): void {
+    const waiting = this.waiting;
+    this.waiting = null;
+    waiting?.(line);
+  }
+
+  /**
+   * Ask a question: print it, then wait for the answer.
+   * @param answers if given (a test), the answers come from it and nobody is waited for;
+   * when it runs out, the answer is an empty line
+   */
+  private ask(question: string, io: Output, answers?: string[]): Promise<string> {
+    io.out(question);
+    if (answers) return Promise.resolve(answers.shift() ?? '');
+    return new Promise((resolve) => (this.waiting = resolve));
+  }
+
   /**
    * Run one command line. Never throws: errors go to io.err
+   * @param answers what to answer if the command asks questions (for tests), see ask
    */
-  public async run(line: string, io: Output): Promise<void> {
+  public async run(line: string, io: Output, answers?: string[]): Promise<void> {
     let words: string[];
     try {
       words = tokenize(line);
@@ -54,7 +86,7 @@ export class ShellService {
     }
 
     try {
-      await command.run(args, this.context(io));
+      await command.run(args, this.context(io, answers));
     } catch (e: any) {
       io.err(e?.message ?? 'Unexpected error');
     }
@@ -62,15 +94,24 @@ export class ShellService {
 
   /**
    * Run a command line and return what it printed
+   * @param answers what to answer if the command asks questions; nobody is waited for here,
+   * so a question with no answer left gets an empty line
    */
-  public async capture(line: string): Promise<{ out: string; err: string }> {
+  public async capture(
+    line: string,
+    answers: string[] = []
+  ): Promise<{ out: string; err: string }> {
     const out: string[] = [];
     const err: string[] = [];
-    await this.run(line, {
-      out: (text) => out.push(text),
-      err: (text) => err.push(text),
-      clear: () => {},
-    });
+    await this.run(
+      line,
+      {
+        out: (text) => out.push(text),
+        err: (text) => err.push(text),
+        clear: () => {},
+      },
+      [...answers]
+    );
     return { out: out.join('\n'), err: err.join('\n') };
   }
 
@@ -102,7 +143,7 @@ export class ShellService {
     const quoted = buffer[start] === QUOTE;
     const partial = buffer.slice(quoted ? start + 1 : start);
 
-    const options = await command.complete(partial, this.context(this.silent));
+    const options = await command.complete(partial, this.context(this.silent, []));
     return this.apply(buffer, start, options, '', quoted);
   }
 
@@ -133,9 +174,10 @@ export class ShellService {
 
   private silent: Output = { out: () => {}, err: () => {}, clear: () => {} };
 
-  private context(io: Output): CommandContext {
+  private context(io: Output, answers?: string[]): CommandContext {
     return {
       ...io,
+      ask: (question) => this.ask(question, io, answers),
       terminal: this.terminal,
       core: this.core,
       debug: this.debug,
@@ -146,7 +188,7 @@ export class ShellService {
       files: this.files,
       seed: this.seed,
       commands: COMMANDS,
-      capture: (line) => this.capture(line),
+      capture: (line, given) => this.capture(line, given),
       complete: (buffer) => this.complete(buffer),
     };
   }

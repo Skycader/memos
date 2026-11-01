@@ -43,6 +43,11 @@ export class GetService {
     return (await db.card.where({ owner }).primaryKeys()) as unknown as string[];
   }
 
+  /** all the cards of a directory */
+  async allCardsByOwner(owner: string) {
+    return await db.card.where({ owner }).toArray();
+  }
+
   async countCardsByOwner(owner: string) {
     return await db.card.where({ owner }).count();
   }

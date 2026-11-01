@@ -100,6 +100,17 @@ export class TerminalComponent {
   public async submit() {
     const line = this.input;
     this.input = '';
+
+    /**
+     * A command is waiting for an answer (to confirm something): this line is the answer.
+     * It is shown, but it is not a command: it does not go to the history or the queue
+     */
+    if (this.shell.asking) {
+      this.print('cmd', `╰─? ${line}`);
+      this.shell.answer(line);
+      return;
+    }
+
     if (line.trim() !== '' && this.history.at(-1) !== line) this.history.push(line);
     this.historyIndex = this.history.length;
     this.draft = '';
