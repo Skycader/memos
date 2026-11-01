@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
 
 import { TerminalComponent } from './terminal.component';
 
@@ -8,6 +9,7 @@ describe('TerminalComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [FormsModule],
       declarations: [TerminalComponent]
     });
     fixture = TestBed.createComponent(TerminalComponent);
