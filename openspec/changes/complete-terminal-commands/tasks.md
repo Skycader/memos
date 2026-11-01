@@ -19,9 +19,13 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 
 ## 3. Stage 1c: editing commands
 
-- [ ] 3.1 Add `mv`, `cp`, `rename`, `edit` to `commands/edit.ts` with Tab completion of ids and paths; verify via `shell.capture` checks for every scenario of `specs/card-and-directory-editing/spec.md`
-- [ ] 3.2 Make `doctor` part of the checks after move/copy/rename/edit/rmdir; verify "no new orphans" is asserted in `test`
-- [ ] 3.3 Document the commands in `docs/terminal.md` and the id/title rule in `docs/architecture.md`; verify the examples run as written
+- [x] 3.1 Add `edit <card id> N:value...` (places from 1, `UpdateService.cardContents`, `CoreService.editCard`, Tab completes ids); verified by Karma specs for `parseEdits` and by in-app `test` checks for the "Edit a card" scenarios of `specs/card-and-directory-editing/spec.md`
+- [x] 3.2 Make `edit` take a directory id: rename sides, add a side after the last one, `N:empty` (only if unused, prints `✓ Clear`) and `N:drop` (erases the values, asks to confirm), first two sides protected, directory and cards written in one transaction (`planDirectoryEdit`, `side-ops`, `UpdateService.directoryWithCards`); verified by 18 Karma specs and by in-app `test` checks for the "Edit a directory" scenarios
+- [x] 3.3 Add `ctx.ask` (the shell hands the next typed line to a waiting command, not to the parser, and keeps it out of the history) and make `drop` ask to type `drop`; verified in `test` (refusals only, see note below) and by typing `drop` in a live terminal
+- [ ] 3.4 Add `mv`, `cp`, `rename` to `commands/edit.ts` with Tab completion of ids and paths; verify via `shell.capture` checks for the "Move", "Copy" and "Rename" scenarios of `specs/card-and-directory-editing/spec.md`
+- [ ] 3.5 Make `doctor` part of the checks after move/copy/rename/edit/rmdir; verify "no new orphans" is asserted in `test`
+- [ ] 3.6 Document the commands in `docs/terminal.md` and the id/title rule in `docs/architecture.md` (`docs/domain.md` and `docs/welcome.md` already cover `edit` and `drop`); verify the examples run as written
+- [ ] 3.7 Cover a confirmed `drop` in `test` once a scratch database exists (task 7.5); until then only its refusals are tested, because a confirmed one would erase the user's real data
 
 ## 4. Stage 1d: shell utilities
 
@@ -40,9 +44,10 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 
 ## 6. Stage 2b: read-only touch and tags
 
-- [x] 6.1 Support the leading `?` in `touch`, storing the index in `CardSPEC.qfields`; verify marked side, wrong number of sides and the lone `?` word
+- [x] 6.1 Support the leading `?` in `touch`, storing the index in `CardSPEC.qfields` (also `??` for a literal `?`, and a card with nothing left to answer is refused); verified by 7 Karma specs for `parseSides` and 6 in-app `test` checks (marked side, the lone `?` word, `??`, every side marked)
 - [ ] 6.2 Show kinds in `ls` and `cat` in the `name:kind` form; verify by `shell.capture`
 - [x] 6.3 Remove `touch ?...` from `PLANNED` and fix the `help` check; verify the check is green
+- [ ] 6.3b Make `touch` refuse a number of sides that differs from the sides of its directory (today any number is accepted, and `edit <dir> N:name` makes mismatches likelier); decide first whether the seed and the in-app `test` data, which have cards with a different number of sides, are allowed to; verify the "Wrong number of sides" scenario of `specs/field-kinds/spec.md`
 - [ ] 6.4 Add Dexie `version(4)` with the `*tags` index, `tag` / `untag`, and `tag:<name>` in `find`; verify tag, find, untag and an upgrade check from version 3
 - [ ] 6.5 Update `docs/domain.md` (kinds are now implemented, answer the open questions the owner decides), `docs/roadmap.md` and `help`; verify the documented examples run as written
 

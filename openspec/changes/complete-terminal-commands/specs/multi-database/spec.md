@@ -51,11 +51,19 @@ The system SHALL provide `db drop <name>` that deletes a database with no confir
 - **THEN** it is deleted and `db ls` no longer shows it
 
 ### Requirement: The fate of drop
-The existing `drop` SHALL keep erasing the data of the **current** database and leaving it open and empty, and SHALL be documented in `help` as "wipe the current database", distinct from `db drop <name>`.
+The existing `drop` SHALL keep erasing the data of the **current** database and leaving it open and empty, and SHALL be documented in `help` as "wipe the current database", distinct from `db drop <name>`. Since it erases everything at once, it SHALL ask the user to type `drop` to confirm, and any other answer SHALL cancel it without erasing anything.
 
 #### Scenario: Wipe
-- **WHEN** the user runs `drop`
+- **WHEN** the user runs `drop` and answers `drop` to the question
 - **THEN** the current database is empty and every command still works without a reload, the theme and font are kept
+
+#### Scenario: Not confirmed
+- **WHEN** the user runs `drop` and answers anything else, such as `yes` or `drop it`
+- **THEN** the terminal prints that it was cancelled and nothing is erased
+
+#### Scenario: Extra arguments
+- **WHEN** the user runs `drop now`
+- **THEN** the terminal prints the usage line as an error and asks nothing
 
 ### Requirement: Self-test uses a scratch database
 The `test` command SHALL run in a throw-away database and MUST NOT write into the user's real databases, and SHALL remove the scratch database when it ends, even when a check fails.

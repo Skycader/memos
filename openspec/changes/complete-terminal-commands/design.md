@@ -126,8 +126,27 @@ Same pattern as `theme` and `font` (bare shows current and available, a wrong va
 returns the values), stored in `localStorage`. `ls` formatting reads it through a small `StyleService`.
 Emoji columns use fixed padding after the marker.
 
+### D16. Confirmation: `ctx.ask` (built before the full session of D10)
+A command that must confirm something calls `await ctx.ask(question)`. The shell prints the question and
+waits; the view sees `shell.asking` and hands the next typed line to `shell.answer(line)` instead of
+the parser, without putting it in the history or the queue. Tests pass the answers as the second
+argument of `capture(line, answers)`; with none left the answer is an empty line, so a test never
+hangs and never confirms by accident. It is deliberately the small part of D10: one question, one
+answer. `study` (D13) will still need the full session. Used by `drop` and by `edit <dir> N:drop`.
+A confirmed `drop` is not run by `test` (it would erase real data) until the scratch database of D9.
+
+### D17. Editing the sides of a directory
+`CoreService.planDirectory` and `editDirectory` use one pure function, `planDirectoryEdit`, so the same
+rules decide what is shown to the user and what is written. The write runs inside one Dexie transaction
+(`UpdateService.directoryWithCards`) and plans again on the data it reads there. Cards go by place, so a
+rename touches no card; adding or taking out a side changes `contents`, `spec.status` and `spec.qfields`
+together (`side-ops`). `N:empty` / `N:drop` are the words that mean "take out"; they are reserved,
+so a side can not be named `empty` or `drop` through `edit` (it can through `mkdir`).
+
 ## Risks / Trade-offs
 
+- **[A side can not be named `empty` or `drop` with `edit`]** → the words are reserved by D17; `mkdir`
+  accepts them, so the limit is only in `edit`, and the help of `edit` says so.
 - **[Schema upgrades lose data]** (versions 3, 4, 5) → each upgrade has a `test` check that opens a database
   filled by the previous version; old `version(n)` blocks are never edited; the docs say to `export` first.
 - **[Swapping the database touches every service]** (D8) → done in one small step, with the constant kept as a
