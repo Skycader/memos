@@ -116,6 +116,33 @@
     cursor: text;
   }
 
+  /* the input and its hint share one cell: the hint is written under the typed text */
+  .field {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+
+    > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  .ghost {
+    white-space: pre;
+    pointer-events: none;
+    overflow: hidden;
+
+    .typed {
+      visibility: hidden;
+    }
+  }
+
+  /* the rest of the hint is always gray, only what the user typed can be red */
+  .ghost-rest {
+    opacity: 0.4;
+  }
+
   .input {
     flex: 1;
     min-width: 0;
@@ -126,5 +153,10 @@
     background: transparent;
     color: inherit;
     font: inherit;
+
+    /* the typed start of the word of a question is red, with the rest of the word */
+    &.danger {
+      color: var(--err);
+    }
   }
 }

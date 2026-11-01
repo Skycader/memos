@@ -57,9 +57,16 @@
 </div>
 
 <ng-template #field>
+  <span class="field">
+    <!-- the hint of a question: how to abort, or the rest of the word being typed -->
+    <span *ngIf="hint as h" class="ghost" aria-hidden="true"
+      ><span class="typed">{{ input }}</span
+      ><span class="ghost-rest">{{ h.rest }}</span></span
+    >
   <input
     #inputRef
     class="input"
+    [class.danger]="hint?.kind === 'word'"
     type="text"
     aria-label="terminal input"
     spellcheck="false"
@@ -69,4 +76,5 @@
     (keydown.enter)="submit()"
     (keydown)="onKeydown($event)"
   />
+  </span>
 </ng-template>

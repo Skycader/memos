@@ -14,6 +14,9 @@ interface Line {
 /** the screen keeps this many lines, older ones are dropped */
 const MAX_LINES = 1000;
 
+/** what the hint of a question suggests typing to cancel it (any other answer cancels too) */
+const ABORT = 'abort';
+
 @Component({
   selector: 'app-terminal',
   templateUrl: './terminal.component.html',
@@ -39,7 +42,22 @@ export class TerminalComponent {
   /** what was typed before browsing history, to come back to it with ↓ */
   private draft = '';
 
-  @ViewChild('inputRef') inputRef!: ElementRef<HTMLInputElement>;
+  private inputElement?: ElementRef<HTMLInputElement>;
+
+  /**
+   * The input is created anew when a question appears and when it is answered (another part of
+   * the template), and a new input has no focus: the cursor would vanish. So every new input
+   * takes the focus at once
+   */
+  @ViewChild('inputRef')
+  set inputRef(element: ElementRef<HTMLInputElement>) {
+    const isNew = element && element !== this.inputElement;
+    this.inputElement = element;
+    if (isNew) element.nativeElement.focus();
+  }
+  get inputRef(): ElementRef<HTMLInputElement> {
+    return this.inputElement as ElementRef<HTMLInputElement>;
+  }
   @ViewChild('screen') screen!: ElementRef<HTMLElement>;
 
   constructor(private shell: ShellService) {}
@@ -61,6 +79,24 @@ export class TerminalComponent {
   /** a question of a command is waiting: the prompt turns into the confirmation */
   public get question(): Question | null {
     return this.shell.question;
+  }
+
+  /**
+   * The hint inside the input while a question waits:
+   * · nothing typed, or the start of `abort`: the rest of `abort`, the way to cancel (Tab types it)
+   * · the start of the word of the question: the rest of the word; what was typed turns red
+   * · anything else: no hint
+   * The rest is always gray
+   */
+  public get hint(): { rest: string; kind: 'abort' | 'word' } | null {
+    const word = this.shell.question?.word;
+    if (!word) return null;
+    const typed = this.input;
+    if (typed !== '' && word.startsWith(typed)) {
+      return { rest: word.slice(typed.length), kind: 'word' };
+    }
+    if (ABORT.startsWith(typed)) return { rest: ABORT.slice(typed.length), kind: 'abort' };
+    return null;
   }
 
   public ngAfterViewInit() {
@@ -191,6 +227,14 @@ export class TerminalComponent {
    * When there are several options, show them under the line, like a shell does
    */
   private async complete() {
+    /**
+     * Under a question Tab completes only `abort`: the word that confirms is never typed for the
+     * user, so that a confirmation can not pass by a stray key
+     */
+    if (this.shell.asking) {
+      if (this.hint?.kind === 'abort') this.input = ABORT;
+      return;
+    }
     const typed = this.input;
     const { buffer, options } = await this.shell.complete(typed);
     /** the line changed while we were looking (Enter, more typing): the result is stale */
