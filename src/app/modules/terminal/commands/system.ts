@@ -200,11 +200,11 @@ export const drop: TerminalCommand = {
   async run(args, ctx) {
     if (args.length > 0) throw new Error('Usage: drop');
 
-    const answer = await ctx.ask(
-      'This erases ALL directories and cards of the current database, for good.\n' +
-        'Type drop to confirm:'
-    );
-    if (answer.trim() !== 'drop') {
+    const agreed = await ctx.confirm({
+      notes: ['This will erase ALL directories and cards of the current database, for good.'],
+      word: 'drop',
+    });
+    if (!agreed) {
       ctx.out('Cancelled: nothing was erased');
       return;
     }

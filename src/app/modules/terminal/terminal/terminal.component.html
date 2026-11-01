@@ -1,23 +1,72 @@
+<!-- the frame of a question is drawn with CSS borders, row by row, so the corners meet the lines -->
+<ng-template #head let-host="host" let-notes="notes">
+  <div class="seg seg-top"><pre class="line">{{ host }}</pre></div>
+  <div class="seg seg-mid" *ngFor="let note of notes; let first = first">
+    <span class="badge" [class.hidden]="!first" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="12" height="12" focusable="false">
+        <rect x="7" y="2.5" width="2" height="7" rx="1" fill="currentColor" />
+        <circle cx="8" cy="12.5" r="1.25" fill="currentColor" />
+      </svg>
+    </span>
+    <span class="note-text">{{ note }}</span>
+  </div>
+</ng-template>
+
+<ng-template #confirm let-word="word">
+  <span class="chip chip-confirm">CONFIRM</span>
+  <span class="type">Type</span>
+  <span class="chip chip-word">{{ word }}</span>
+  <span class="colon">:</span>
+</ng-template>
+
 <div class="terminal" #screen (click)="onScreenClick()">
-  <pre *ngFor="let line of lines" class="line" [class.err]="line.kind === 'err'">{{ line.text }}</pre>
+  <ng-container *ngFor="let line of lines">
+    <!-- an answered question stays as it was asked -->
+    <div *ngIf="line.kind === 'ask' && line.question as q" class="ask">
+      <ng-container
+        *ngTemplateOutlet="head; context: { host: line.host, notes: q.notes }"
+      ></ng-container>
+      <div class="seg seg-bottom">
+        <ng-container *ngTemplateOutlet="confirm; context: { word: q.word }"></ng-container>
+        <pre class="line answer"> {{ line.text }}</pre>
+      </div>
+    </div>
+    <pre *ngIf="line.kind !== 'ask'" class="line" [class.err]="line.kind === 'err'">{{ line.text }}</pre>
+  </ng-container>
 
   <div class="prompt">
-    <pre class="line">{{ promptTop }}</pre>
-    <!-- a div, not a label: a label hands the focus to the input on any click and drops a selection -->
-    <div class="input-row">
-      <pre class="line">╰─$ </pre>
-      <input
-        #inputRef
-        class="input"
-        type="text"
-        aria-label="terminal input"
-        spellcheck="false"
-        autocomplete="off"
-        autocapitalize="off"
-        [(ngModel)]="input"
-        (keydown.enter)="submit()"
-        (keydown)="onKeydown($event)"
-      />
-    </div>
+    <ng-container *ngIf="question as q; else plain">
+      <ng-container
+        *ngTemplateOutlet="head; context: { host: promptHost, notes: q.notes }"
+      ></ng-container>
+      <div class="seg seg-bottom">
+        <ng-container *ngTemplateOutlet="confirm; context: { word: q.word }"></ng-container>
+        <pre class="line"> </pre>
+        <ng-container *ngTemplateOutlet="field"></ng-container>
+      </div>
+    </ng-container>
+    <ng-template #plain>
+      <pre class="line">{{ promptTop }}</pre>
+      <!-- a div, not a label: a label hands the focus to the input on any click and drops a selection -->
+      <div class="input-row">
+        <pre class="line">╰─$ </pre>
+        <ng-container *ngTemplateOutlet="field"></ng-container>
+      </div>
+    </ng-template>
   </div>
 </div>
+
+<ng-template #field>
+  <input
+    #inputRef
+    class="input"
+    type="text"
+    aria-label="terminal input"
+    spellcheck="false"
+    autocomplete="off"
+    autocapitalize="off"
+    [(ngModel)]="input"
+    (keydown.enter)="submit()"
+    (keydown)="onKeydown($event)"
+  />
+</ng-template>

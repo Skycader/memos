@@ -109,10 +109,13 @@ npx ng build                                # production build (output in dist/,
 - **A bare `cd` goes to `/`** (no home directory). `cd` takes a title or an id; the title wins.
 - **No confirmation** for `rmdir` and `rm` (the owner's choice); `export` first if in doubt.
   **Confirmation is asked** where a lot goes at once: `drop` and `edit <dir> N:drop` print
-  `Type drop to confirm` and wait for the next line; anything but `drop` cancels. A command asks with
-  `ctx.ask(question)`; while it waits, the next typed line is the answer, not a command, and it does not
-  go to the history. In tests `shell.capture(line, ['drop'])` gives the answers; with none, the answer
-  is an empty line, so a test never hangs and never erases anything by accident.
+  a warning (red square with `!`) and the prompt `CONFIRM Type [drop]:` with the word as a chip; anything
+  but `drop` cancels, so does Esc. A command asks with `ctx.confirm({ notes, word })`, which returns true
+  only for the exact word; while it waits, the next typed line is the answer, not a command, and it does
+  not go to the history. The view draws the question from `ShellService.question` (HTML and CSS, not
+  text), and keeps it on the screen after the answer. In tests `shell.capture(line, ['drop'])` gives the
+  answers and the question is printed as text (`(!) ...`, `Type drop to confirm:`); with no answers the
+  answer is an empty line, so a test never hangs and never erases anything by accident.
 - **`lsd`, `lsdir`, `dir` were removed**: `ls d` replaces them.
 - `touch` in the root is refused: cards live in directories.
 - The color theme and the font live in `localStorage`, not in the database, so `drop` keeps them.

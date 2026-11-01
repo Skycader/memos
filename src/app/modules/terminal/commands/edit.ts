@@ -138,18 +138,19 @@ export const edit: TerminalCommand = {
     const plan = await ctx.core.planDirectory(id, edits);
     const erasing = plan.removed.filter((side) => side.mode === 'drop');
     if (erasing.length > 0) {
-      const lost = erasing
-        .map(
-          (side) =>
-            `side ${side.position} (${side.name}): ${side.withData} of ${plan.cards} ` +
-            `card${plan.cards === 1 ? '' : 's'} ${side.withData === 1 ? 'has' : 'have'} a value`
-        )
-        .join('\n  ');
-      const answer = await ctx.ask(
-        `This takes out the side from the directory and erases it from all its cards, for good:\n  ${lost}\n` +
-          'Type drop to confirm:'
+      const lost = erasing.map(
+        (side) =>
+          `side ${side.position} (${side.name}): ${side.withData} of ${plan.cards} ` +
+          `card${plan.cards === 1 ? '' : 's'} ${side.withData === 1 ? 'has' : 'have'} a value`
       );
-      if (answer.trim() !== 'drop') {
+      const agreed = await ctx.confirm({
+        notes: [
+          'This takes out the side from the directory and erases it from all its cards, for good:',
+          ...lost,
+        ],
+        word: 'drop',
+      });
+      if (!agreed) {
         ctx.out('Cancelled: nothing was changed');
         return;
       }

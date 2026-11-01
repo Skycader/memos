@@ -19,6 +19,16 @@ export interface Output {
 }
 
 /**
+ * What a command shows to confirm something that can not be undone
+ */
+export interface Question {
+  /** what is about to happen, one line each; shown with a warning sign */
+  notes: string[];
+  /** the word the user has to type to agree, shown as a chip */
+  word: string;
+}
+
+/**
  * What the shell can do for the self-test: run a whole command line,
  * and complete a half-typed one like Tab does
  */
@@ -38,10 +48,11 @@ export interface ShellRunner {
  */
 export interface CommandContext extends Output, ShellRunner {
   /**
-   * Ask the user a question and wait for the next line they type.
-   * Prints the question, returns the line as typed. Used to confirm what can not be undone
+   * Ask the user to confirm what can not be undone: shows the warning, waits for the next line
+   * they type and says whether it is exactly the word of the question (Esc cancels).
+   * In tests the answers come from capture(line, answers)
    */
-  ask(question: string): Promise<string>;
+  confirm(question: Question): Promise<boolean>;
   /** session: current directory and navigation */
   terminal: TerminalService;
   core: CoreService;

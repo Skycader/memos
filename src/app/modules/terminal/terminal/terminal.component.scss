@@ -21,9 +21,98 @@
     color: var(--err);
   }
 
+  /* The frame of a question is drawn with borders, one piece per row: the pieces touch, so the line
+     has no gaps, and the corners are round. Box characters of a font do not reach the edges of a
+     row (line-height 1.25) and leave gaps */
+  .seg {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 2ch;
+    white-space: pre-wrap;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0.5ch;
+      top: 0;
+      bottom: 0;
+      width: 1.5ch;
+      border-left: 1px solid currentColor;
+      pointer-events: none;
+    }
+  }
+
+  .seg-top::before {
+    top: 50%;
+    border-top: 1px solid currentColor;
+    border-top-left-radius: 5px;
+  }
+
+  .seg-bottom::before {
+    bottom: 50%;
+    border-bottom: 1px solid currentColor;
+    border-bottom-left-radius: 5px;
+  }
+
+  .badge {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background: var(--err);
+    color: #fff;
+
+    &.hidden {
+      visibility: hidden;
+    }
+  }
+
+  .note-text {
+    overflow-wrap: anywhere;
+  }
+
+  .chip {
+    display: inline-block;
+    padding: 0 7px;
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    border-radius: 999px;
+    background: rgba(128, 128, 128, 0.18);
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .chip-confirm {
+    border-color: var(--err);
+    color: var(--err);
+    background: transparent;
+    font-size: 0.85em;
+    letter-spacing: 0.06em;
+  }
+
+  .chip-word {
+    font-weight: bold;
+  }
+
+  .type {
+    margin: 0 0.5ch;
+  }
+
+  .colon {
+    margin-right: 0.5ch;
+  }
+
+  .answer {
+    opacity: 0.85;
+  }
+
   .input-row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     cursor: text;
   }
 

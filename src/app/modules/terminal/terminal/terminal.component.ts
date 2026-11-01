@@ -1,10 +1,14 @@
 import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
-import { Output } from '../commands/command';
+import { Output, Question } from '../commands/command';
 import { ShellService } from '../services/shell.service';
 
 interface Line {
-  kind: 'cmd' | 'out' | 'err';
+  kind: 'cmd' | 'out' | 'err' | 'ask';
   text: string;
+  /** an answered question, drawn as the prompt it was asked with */
+  question?: Question;
+  /** who and where the question was asked, the first line of its frame */
+  host?: string;
 }
 
 /** the screen keeps this many lines, older ones are dropped */
@@ -46,7 +50,17 @@ export class TerminalComponent {
    * ╰─$
    */
   public get promptTop(): string {
-    return '╭─axl@memos ' + this.shell.terminal.pwd();
+    return '╭─' + this.promptHost;
+  }
+
+  /** the prompt without its corner: a question draws its own frame */
+  public get promptHost(): string {
+    return 'axl@memos ' + this.shell.terminal.pwd();
+  }
+
+  /** a question of a command is waiting: the prompt turns into the confirmation */
+  public get question(): Question | null {
+    return this.shell.question;
   }
 
   public ngAfterViewInit() {
@@ -106,8 +120,7 @@ export class TerminalComponent {
      * It is shown, but it is not a command: it does not go to the history or the queue
      */
     if (this.shell.asking) {
-      this.print('cmd', `╰─? ${line}`);
-      this.shell.answer(line);
+      this.answer(line);
       return;
     }
 
@@ -135,8 +148,22 @@ export class TerminalComponent {
     }
   }
 
+  /**
+   * Answer the question of a command: it stays on the screen as it was asked, with the answer
+   */
+  private answer(line: string) {
+    const question = this.shell.question;
+    if (question) this.lines.push({ kind: 'ask', text: line, question, host: this.promptHost });
+    this.shell.answer(line);
+    this.scrollDown();
+  }
+
   public async onKeydown(event: KeyboardEvent) {
-    if (event.key === 'ArrowUp') {
+    if (event.key === 'Escape' && this.shell.asking) {
+      event.preventDefault();
+      this.input = '';
+      this.answer('');
+    } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.browseHistory(-1);
     } else if (event.key === 'ArrowDown') {

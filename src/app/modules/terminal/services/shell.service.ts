@@ -8,7 +8,7 @@ import { SeedService } from '../../debug/services/seed.service';
 import { ExchangeService } from '../../exchange/exchange.service';
 import { FileService } from '../../exchange/file.service';
 import { allCommandNames, COMMANDS, findCommand } from '../commands';
-import { CommandContext, Output } from '../commands/command';
+import { CommandContext, Output, Question } from '../commands/command';
 import { TerminalService } from './terminal.service';
 import { QUOTE, tokenize } from './tokenizer';
 
@@ -36,6 +36,9 @@ export class ShellService {
   /** set while a command waits for the user to type an answer, see ask */
   private waiting: ((line: string) => void) | null = null;
 
+  /** what the waiting command asks: the view draws it as the prompt */
+  public question: Question | null = null;
+
   /**
    * Is a command waiting for an answer? Then the next line typed is that answer,
    * not a command: the view hands it over with answer()
@@ -50,18 +53,33 @@ export class ShellService {
   public answer(line: string): void {
     const waiting = this.waiting;
     this.waiting = null;
+    this.question = null;
     waiting?.(line);
   }
 
   /**
-   * Ask a question: print it, then wait for the answer.
+   * Ask to confirm: show the question, wait for the answer, agree only to the exact word.
    * @param answers if given (a test), the answers come from it and nobody is waited for;
-   * when it runs out, the answer is an empty line
+   * when it runs out, the answer is an empty line. The question is printed as plain text then;
+   * for the user the view draws it as the prompt (see question)
    */
-  private ask(question: string, io: Output, answers?: string[]): Promise<string> {
-    io.out(question);
-    if (answers) return Promise.resolve(answers.shift() ?? '');
-    return new Promise((resolve) => (this.waiting = resolve));
+  private async confirm(question: Question, io: Output, answers?: string[]): Promise<boolean> {
+    let line: string;
+    if (answers) {
+      const [first = '', ...rest] = question.notes;
+      io.out(
+        [`(!) ${first}`, ...rest.map((note) => `    ${note}`), `Type ${question.word} to confirm:`].join(
+          '\n'
+        )
+      );
+      line = answers.shift() ?? '';
+    } else {
+      line = await new Promise<string>((resolve) => {
+        this.question = question;
+        this.waiting = resolve;
+      });
+    }
+    return line.trim() === question.word;
   }
 
   /**
@@ -177,7 +195,7 @@ export class ShellService {
   private context(io: Output, answers?: string[]): CommandContext {
     return {
       ...io,
-      ask: (question) => this.ask(question, io, answers),
+      confirm: (question) => this.confirm(question, io, answers),
       terminal: this.terminal,
       core: this.core,
       debug: this.debug,
