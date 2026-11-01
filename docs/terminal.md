@@ -45,7 +45,7 @@ constant `QUOTE`), and the cases are checked by `test`.
 
 `TerminalService.resolve(from, path)` understands `name`, `..`, `.`, `/` and combinations
 (`French/Verbs`, `/French`, `../Spanish`). Any name in a path can also be the **id** of a
-directory (`cd 4a3x`, as `ls` shows it, like `rm` and `rmdir` take ids); when a title and an id are
+directory (`cd 4a3x`, as `ls` shows it, like `rm` takes the id of a card; `rmdir`, `mv` and `edit` take a title too); when a title and an id are
 the same text, the title wins. A bare `cd` goes to the root `/`: unlike in Linux there is no home
 directory here. Nothing is cached: every step asks the database,
 so the session does not see stale data. After a directory is removed,
@@ -119,7 +119,7 @@ while nothing is focused, the keys go to the input; shortcuts with Ctrl, Cmd or 
 
 Tab completes the command name, or the last word through the command's `complete`. A name typed
 in full wins over longer ones (`rm` + Tab gives `rm `, not a list with `rmdir`), and `rm <Tab>` /
-`rmdir <Tab>` complete the id of a card / a directory in the current directory:
+`rmdir <Tab>` complete the id of a card / the id or title of a directory in the current directory:
 `fo` -> `font `, `font J` -> `font JetBrainsMono`, `cd Su` -> ``cd `Sub Dir` `` (in backticks when the
 name has spaces). When several options fit, the common part is filled in and the options are
 listed under the line. `test` checks all of this.

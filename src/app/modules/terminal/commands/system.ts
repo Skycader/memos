@@ -5,7 +5,8 @@ import { TerminalCommand } from './command';
  * Not implemented yet. Move a line out of here when it works
  */
 const PLANNED = [
-  'rmdir <dir name> - remove a directory by name',
+  'cp <what> <where> - copy a card or a directory',
+  'rename <what> <new title> - rename a directory',
 ];
 
 /**

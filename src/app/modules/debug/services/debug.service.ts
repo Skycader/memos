@@ -1055,6 +1055,51 @@ export class DebugService {
           (await tab('edit Bare')) === 'edit `Bare Deck`'
         );
 
+        /** rmdir by title, by id, with inner counts; a title wins over an id, as in cd and mv */
+        await run('mkdir RmA Q A');
+        await run('mkdir RmB Q A');
+        await run('cd RmA');
+        await run('mkdir RmInner Q A');
+        await run('touch one two');
+        await run('cd ..');
+        const rmA = await dirIn(qoDir, 'RmA');
+        const rmB = await dirIn(qoDir, 'RmB');
+        check(
+          'tab: rmdir completes the title of a directory',
+          (await tab('rmdir RmA')) === 'rmdir RmA' && (await tabOptions('rmdir Rm')).length === 2
+        );
+        const rmByTitle = await run('rmdir RmA');
+        check(
+          'rmdir: by title removes the directory with what is inside and says so',
+          rmByTitle.err === '' &&
+            rmByTitle.out === 'Removed directory RmA with 1 inner directory and 1 card' &&
+            (await db.directory.get(rmA as any)) === undefined &&
+            (await db.card.where('owner').equals(rmA).count()) === 0,
+          rmByTitle.out + rmByTitle.err
+        );
+        const rmById = await run(`rmdir ${rmB}`);
+        check(
+          'rmdir: by id still works',
+          rmById.err === '' && (await db.directory.get(rmB as any)) === undefined,
+          rmById.out + rmById.err
+        );
+        const rmNone = await run('rmdir NoSuchDir');
+        const rmTwo = await run('rmdir Bare Deck');
+        const rmEmpty = await run('rmdir');
+        check(
+          'rmdir: an unknown title, two words and no word are errors, nothing is removed',
+          rmNone.err.includes('There is no directory "NoSuchDir"') &&
+            rmTwo.err.includes('Usage: rmdir') &&
+            rmEmpty.err.includes('Usage: rmdir') &&
+            (await dirIn(qoDir, 'Bare Deck')) === mvBare,
+          rmNone.err + rmTwo.err + rmEmpty.err
+        );
+        await run('mkdir `Rm Space` Q A');
+        check(
+          'rmdir: a title with spaces in backticks',
+          (await run('rmdir `Rm Space`')).err === '' && (await dirIn(qoDir, 'Rm Space')) === ''
+        );
+
 
 
 
@@ -1178,7 +1223,8 @@ export class DebugService {
           'help: ends with the Planned list and exactly one empty line before the next prompt',
           helpText.endsWith(
             ' * Planned (not implemented yet)\n\n' +
-              '    · rmdir <dir name> - remove a directory by name\n\n'
+              '    · cp <what> <where> - copy a card or a directory\n' +
+              '    · rename <what> <new title> - rename a directory\n\n'
           ) &&
             !helpText.endsWith('\n\n\n') &&
             touchHelp.endsWith('\n\n') &&

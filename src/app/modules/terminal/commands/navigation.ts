@@ -100,7 +100,7 @@ export const ls: TerminalCommand = {
   description: 'list directories and cards here',
   why:
     'Shows what is in the current directory: directories and cards, with their ids ' +
-    '(rmdir needs an id).',
+    '(rm needs the id of a card).',
   examples: [
     'ls  # directories and cards',
     'ls d  # only directories (ls -d works too)',

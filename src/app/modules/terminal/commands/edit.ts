@@ -225,34 +225,44 @@ export const rm: TerminalCommand = {
 export const rmdir: TerminalCommand = {
   name: 'rmdir',
   group: 'edit',
-  usage: 'rmdir <id>',
+  usage: 'rmdir <title or id>',
   description: 'remove a directory with everything inside',
   why: 'Gets rid of a directory you do not need, together with all its cards and sub-directories.',
-  examples: ['rmdir aB3x  # the id is shown by ls'],
+  examples: [
+    'rmdir French  # by title, in the current directory',
+    'rmdir `My French`  # backticks for a title with spaces',
+    'rmdir aB3x  # by id, as shown by ls',
+  ],
   notes: [
-    'Tab completes the id of a directory in the current directory',
+    'A title in the current directory wins; otherwise the argument is taken as an id',
+    'Tab completes the titles and ids of directories in the current directory',
     'Removes everything inside too, at any depth, in one go',
     'Says how many inner directories and cards went with it, for example: Removed directory aB3x with 3 inner directories and 46 cards',
     'There is no confirmation and no undo: export first if in doubt',
   ],
   async run(args, ctx) {
-    const id = args.at(0);
-    if (!id) throw new Error('Usage: rmdir <id> (see ids in ls)');
+    const what = args.at(0);
+    if (!what || args.length !== 1) throw new Error('Usage: rmdir <title or id> (see ls)');
+    /** a title in this directory wins, as in cd, mv and edit */
+    const titled = (await ctx.core.lsdir(ctx.terminal.getCDI(), 0)).find((dir) => dir.title === what);
+    const id = titled?.id ?? what;
     const removed = await ctx.core.removeDir(id);
-    if (removed.dirs === 0) throw new Error('Directory does not exist');
+    if (removed.dirs === 0) throw new Error(`There is no directory "${what}" here (see ls)`);
     /** we may have just removed the directory we are standing in */
     await ctx.terminal.revalidate();
 
     /** the directory itself is not "inner": only what was inside it is counted */
     const inner = removed.dirs - 1;
     ctx.out(
-      `Removed directory ${id} with ${inner} inner director${inner === 1 ? 'y' : 'ies'} ` +
+      `Removed directory ${what} with ${inner} inner director${inner === 1 ? 'y' : 'ies'} ` +
         `and ${removed.cards} card${removed.cards === 1 ? '' : 's'}`
     );
   },
   async complete(partial, ctx) {
     const dirs = await ctx.core.lsdir(ctx.terminal.getCDI(), 0);
-    return dirs.map((dir) => dir.id).filter((id) => id.startsWith(partial));
+    return [...dirs.map((dir) => dir.id), ...dirs.map((dir) => dir.title)].filter((name) =>
+      name.startsWith(partial)
+    );
   },
 };
 
