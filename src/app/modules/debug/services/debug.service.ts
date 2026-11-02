@@ -1172,6 +1172,186 @@ export class DebugService {
           rootTouch.err
         );
 
+        /**
+         * ask: the repetition mode. Card 'dog' (question only) and 'chien': the side to type is
+         * always the second, so the answers of a test are known
+         */
+        await run(`cd /${TEST_TITLE}`);
+        await run(`mkdir AskDir Q A`);
+        const askDir = await dirIn(root4, 'AskDir');
+        const noCards = await run('ask AskDir');
+        await this.core.touch(['dog', 'chien'], askDir, [0]);
+        const askCard = (await db.card.where('owner').equals(askDir).first()) as Card;
+        const cardNow = async () => (await db.card.get(askCard.id as any)) as Card;
+        const rest = (card: Card) => card.next - card.prev;
+        const about = (value: number, expected: number) => Math.abs(value - expected) < 5000;
+        const MIN = 60_000;
+        const due = async (restMs: number) =>
+          this.core.reschedule(askCard.id, { prev: Date.now() - restMs, next: Date.now() });
+        const ask = (answers: string[]) => shell.capture('ask AskDir', answers);
+
+        check(
+          'ask: an empty directory says there are no cards; a new card keeps when it was born',
+          noCards.out.includes('There are no cards here') && typeof askCard.spec.born === 'number',
+          noCards.out
+        );
+        const beforeWrong = await cardNow();
+        const wrong = await ask(['chiem', 'nope']);
+        const afterWrong = await cardNow();
+        check(
+          'ask: a wrong answer says how much of the right one matches, hides it, and changes nothing',
+          wrong.out.includes('wrong, 80% of the right answer') &&
+            wrong.out.includes('wrong, ') &&
+            !wrong.out.includes('chien') &&
+            wrong.out.includes('2 wrong') &&
+            afterWrong.next === beforeWrong.next &&
+            afterWrong.prev === beforeWrong.prev,
+          wrong.out
+        );
+        await this.core.reschedule(askCard.id, { prev: Date.now(), next: Date.now() + 60 * MIN });
+        const notDue = await ask([]);
+        check(
+          'ask: a card that is not due is not asked, and when the next one comes is told',
+          notDue.out.includes('Nothing to repeat now') && !notDue.out.includes('[Q]'),
+          notDue.out
+        );
+        await due(60 * MIN);
+        const right = await ask([' CHIEN ']);
+        const afterRight = await cardNow();
+        check(
+          'ask: a right answer (any case, spaces around) doubles the rest: 1 h become 2 h',
+          right.out.includes('success') && about(rest(afterRight), 120 * MIN) && right.out.includes('1 right'),
+          right.out
+        );
+        /** a card that stood 16 minutes with no rest planned: the answer gives 2 * 16 */
+        await this.core.reschedule(askCard.id, {
+          prev: Date.now() - 16 * MIN,
+          next: Date.now() - 16 * MIN,
+        });
+        await ask(['chien']);
+        check(
+          'ask: a right answer grows from the time the card really stood: 16 minutes become 32',
+          Math.abs(rest(await cardNow()) - 32 * MIN) < 5000,
+          String(rest(await cardNow()) / MIN)
+        );
+        await due(60 * MIN);
+        const helped = await ask(['/tip', 'chien']);
+        check(
+          'ask: /tip hides the letters, and a right answer after it grows the rest slower (1 h, 1.5 h)',
+          helped.out.includes('Tip: c____') && about(rest(await cardNow()), 90 * MIN),
+          helped.out
+        );
+        await due(60 * MIN);
+        await ask(['/postpone 30m']);
+        const put = await cardNow();
+        check(
+          'ask: /postpone moves only next: the rest grows by the time, prev stays',
+          put.next - Date.now() > 29 * MIN && put.next - Date.now() <= 30 * MIN && about(rest(put), 90 * MIN),
+          `${put.next - Date.now()} ${rest(put)}`
+        );
+        await due(60 * MIN);
+        await ask(['/nullify']);
+        const nulled = await cardNow();
+        await due(3 * 60 * MIN);
+        await ask(['/same']);
+        const sameAgain = await cardNow();
+        check(
+          'ask: /nullify makes the card new, /same is a right answer with the growth of 1',
+          nulled.next === nulled.prev &&
+            about(rest(sameAgain), 180 * MIN) &&
+            sameAgain.prev > Date.now() - MIN,
+          `${rest(nulled)} ${rest(sameAgain)}`
+        );
+        await due(60 * MIN);
+        const before = await cardNow();
+        const strayAsk = await ask(['/frobnicate', '/help', 'done']);
+        const unchanged = await cardNow();
+        check(
+          'ask: an unknown /command is an error, /help lists the commands, done leaves, nothing changes',
+          strayAsk.err.includes("No such command of the mode") &&
+            strayAsk.out.includes("/postpone") &&
+            strayAsk.out.includes("0 right, 0 wrong, 0 moved, 1 left") &&
+            unchanged.next === before.next &&
+            unchanged.prev === before.prev,
+          strayAsk.out + strayAsk.err
+        );
+        check(
+          'ask: too many words is an error, a path that is not there too; it is in help',
+          (await run('ask a b')).err.includes('Usage: ask') &&
+            (await run('ask Nowhere')).err.includes('does not exist') &&
+            (await run('help')).out.includes('Repetition') &&
+            (await run('help ask')).out.includes('/postpone')
+        );
+
+        /**
+         * edit <card id> next:... prev:...: the times are counted from now, not from the old value.
+         * The card of the ask checks above is used again
+         */
+        const stamp = async () => {
+          const card = await cardNow();
+          return { next: card.next - Date.now(), prev: card.prev - Date.now() };
+        };
+        const near = (value: number, shift: number) => Math.abs(value - shift) < 5000;
+
+        await run(`edit ${askCard.id} next:now`);
+        const nextNow = await stamp();
+        await run(`edit ${askCard.id} prev:now`);
+        const prevNow = await stamp();
+        check(
+          'edit card: next:now and prev:now set the moment to now, each alone',
+          near(nextNow.next, 0) && !near(nextNow.prev, 0) && near(prevNow.prev, 0),
+          JSON.stringify([nextNow, prevNow])
+        );
+
+        await run(`edit ${askCard.id} next:1m`);
+        const next1 = await stamp();
+        await run(`edit ${askCard.id} next:-1m`);
+        const nextMinus1 = await stamp();
+        await run(`edit ${askCard.id} prev:1m`);
+        const prev1 = await stamp();
+        await run(`edit ${askCard.id} prev:-1m`);
+        const prevMinus1 = await stamp();
+        check(
+          'edit card: next:1m / next:-1m / prev:1m / prev:-1m count from now, not from the old value',
+          near(next1.next, MIN) &&
+            near(nextMinus1.next, -MIN) &&
+            near(prev1.prev, MIN) &&
+            near(prevMinus1.prev, -MIN) &&
+            near(prevMinus1.next, -MIN),
+          JSON.stringify([next1, nextMinus1, prev1, prevMinus1])
+        );
+
+        const together = await run(`edit ${askCard.id} 2:chienne next:2h prev:-1h`);
+        const after = await cardNow();
+        check(
+          'edit card: sides and times go together in one command, and the report shows both',
+          together.err === '' &&
+            after.contents[1] === 'chienne' &&
+            near(after.next - Date.now(), 120 * MIN) &&
+            near(after.prev - Date.now(), -60 * MIN) &&
+            together.out.includes('side 2: `chien` -> `chienne`') &&
+            together.out.includes('next: ') &&
+            together.out.includes('prev: '),
+          together.out + together.err
+        );
+
+        const beforeBad = JSON.stringify(await cardNow());
+        const badTime = await run(`edit ${askCard.id} 2:chien next:soon`);
+        const badTwice = await run(`edit ${askCard.id} next:now next:1m`);
+        const badSide = await run(`edit ${askCard.id} 9:x next:now`);
+        const onDirectory = await run(`edit AskDir next:now`);
+        check(
+          'edit card: a wrong time, a time twice or a wrong side changes nothing; a directory has no times',
+          badTime.err.includes('Time looks like') &&
+            badTwice.err.includes('twice') &&
+            badSide.err.includes('no side 9') &&
+            onDirectory.err !== '' &&
+            JSON.stringify(await cardNow()) === beforeBad,
+          badTime.err + badTwice.err + badSide.err + onDirectory.err
+        );
+        check('edit: the help tells about next: and prev:', (await run('help edit')).out.includes('next:-1m'));
+
+        await run('cd /');
         const helpText = (await run('help')).out;
         const missingLine = (command: (typeof COMMANDS)[number]) =>
           !helpText.includes(
@@ -1180,7 +1360,7 @@ export class DebugService {
         check(
           'help: one short line per command from the registry, grouped, no examples',
           COMMANDS.every((command) => !missingLine(command)) &&
-            ['Navigation', 'Data manipulation', 'Import and export', 'System', 'Testing and diagnostics'].every(
+            ['Navigation', 'Data manipulation', 'Repetition', 'Import and export', 'System', 'Testing and diagnostics'].every(
               (title) => helpText.split('\n').includes(` * ${title}`)
             ) &&
             !helpText.includes('Examples'),

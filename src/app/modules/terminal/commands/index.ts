@@ -3,6 +3,7 @@ import { exportCommand, importCommand, seed } from './data';
 import { doctor, test } from './diagnostics';
 import { edit, mkdir, mv, rm, rmdir, touch } from './edit';
 import { cd, ls, pwd } from './navigation';
+import { ask } from './repeat';
 import { clear, drop, font, help, theme } from './system';
 
 /**
@@ -19,6 +20,7 @@ export const COMMANDS: TerminalCommand[] = [
   mv,
   rm,
   rmdir,
+  ask,
   exportCommand,
   importCommand,
   seed,

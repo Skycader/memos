@@ -1,14 +1,18 @@
 import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
-import { Output, Question } from '../commands/command';
+import { CardView, Chip, Output, Question } from '../commands/command';
 import { ShellService } from '../services/shell.service';
 
 interface Line {
-  kind: 'cmd' | 'out' | 'err' | 'ask';
+  kind: 'cmd' | 'out' | 'err' | 'ask' | 'card' | 'chips';
   text: string;
   /** an answered question, drawn as the prompt it was asked with */
   question?: Question;
   /** who and where the question was asked, the first line of its frame */
   host?: string;
+  /** an answered card of the repetition mode, drawn as it was shown */
+  card?: CardView;
+  /** a row of chips */
+  chips?: Chip[];
 }
 
 /** the screen keeps this many lines, older ones are dropped */
@@ -81,6 +85,11 @@ export class TerminalComponent {
     return this.shell.question;
   }
 
+  /** a card of the repetition mode is shown: the prompt turns into the card */
+  public get card(): CardView | null {
+    return this.shell.card;
+  }
+
   /**
    * The hint inside the input while a question waits:
    * · nothing typed, or the start of `abort`: the rest of `abort`, the way to cancel (Tab types it)
@@ -89,6 +98,8 @@ export class TerminalComponent {
    * The rest is always gray
    */
   public get hint(): { rest: string; kind: 'abort' | 'word' } | null {
+    /** a card: the empty input tells which field to type */
+    if (this.shell.card) return this.input === '' ? { rest: this.shell.card.want, kind: 'abort' } : null;
     const word = this.shell.question?.word;
     if (!word) return null;
     const typed = this.input;
@@ -134,6 +145,10 @@ export class TerminalComponent {
    */
   private output: Output = {
     out: (text) => this.print('out', text),
+    chips: (items) => {
+      this.lines.push({ kind: 'chips', text: items.map((item) => item.text).join(' '), chips: items });
+      this.scrollDown();
+    },
     err: (text) => this.print('err', '(!) ' + text),
     clear: () => (this.lines = []),
   };
@@ -156,6 +171,8 @@ export class TerminalComponent {
      * It is shown, but it is not a command: it does not go to the history or the queue
      */
     if (this.shell.asking) {
+      /** an empty line is not an answer to a card, the card stays */
+      if (this.shell.card && line.trim() === '') return;
       this.answer(line);
       return;
     }
@@ -189,7 +206,9 @@ export class TerminalComponent {
    */
   private answer(line: string) {
     const question = this.shell.question;
+    const card = this.shell.card;
     if (question) this.lines.push({ kind: 'ask', text: line, question, host: this.promptHost });
+    if (card) this.lines.push({ kind: 'card', text: line, card, host: this.promptHost });
     this.shell.answer(line);
     this.scrollDown();
   }
@@ -198,7 +217,8 @@ export class TerminalComponent {
     if (event.key === 'Escape' && this.shell.asking) {
       event.preventDefault();
       this.input = '';
-      this.answer('');
+      /** Esc leaves the repetition mode, and cancels a confirmation */
+      this.answer(this.shell.card ? '/exit' : '');
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.browseHistory(-1);
@@ -232,7 +252,14 @@ export class TerminalComponent {
      * user, so that a confirmation can not pass by a stray key
      */
     if (this.shell.asking) {
-      if (this.hint?.kind === 'abort') this.input = ABORT;
+      const card = this.shell.card;
+      if (card) {
+        /** a card: Tab completes the commands of the mode, `/p` -> `/postpone` */
+        if (!this.input.startsWith('/') || /\s/.test(this.input)) return;
+        const found = card.commands.filter((name) => name.startsWith(this.input));
+        if (found.length === 1) this.input = found[0] + ' ';
+        else if (found.length > 1) this.input = this.common(found);
+      } else if (this.hint?.kind === 'abort') this.input = ABORT;
       return;
     }
     const typed = this.input;
@@ -244,6 +271,13 @@ export class TerminalComponent {
       this.print('out', options.join('  '));
     }
     this.input = buffer;
+  }
+
+  /** the longest start that all of the words share */
+  private common(words: string[]): string {
+    let start = words[0];
+    for (const word of words) while (!word.startsWith(start)) start = start.slice(0, -1);
+    return start;
   }
 
   private scrollDown() {

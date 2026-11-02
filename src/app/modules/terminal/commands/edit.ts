@@ -1,4 +1,5 @@
-import { parseDirectoryEdits, parseEdits } from '../services/edits';
+import { formatTime } from '../../repeat/schedule';
+import { parseCardEdits, parseDirectoryEdits } from '../services/edits';
 import { sidesWarning } from '../services/move';
 import { parseSides } from '../services/sides';
 import { CommandContext, TerminalCommand } from './command';
@@ -79,6 +80,11 @@ export const edit: TerminalCommand = {
     'edit Lzad 1:chien 2:dog  # several sides at once',
     'edit Lzad 3:  # nothing after the colon: the side becomes empty',
     'edit Lzad 2:10:30  # only the first colon counts, the value is 10:30',
+    'edit Lzad next:now  # the card may be repeated at once',
+    'edit Lzad next:-1m  # next becomes one minute before now (the card is due)',
+    'edit Lzad next:1h  # next becomes one hour after now',
+    'edit Lzad prev:now  # the last repeat was just now',
+    'edit Lzad prev:-2h next:now  # the times and the sides can go together',
     'edit aB3x 1:Name 2:Phone  # directory: rename its sides, the cards do not change',
     'edit aB3x 3:Email  # directory: add a third side, every card gets an empty one',
     'edit aB3x 3:empty  # take side 3 out, only if no card has a value in it',
@@ -90,9 +96,10 @@ export const edit: TerminalCommand = {
   ],
   notes: [
     'A directory is named by its title or its id, a card by its id; ls shows them (ls c for cards, ls d for directories); Tab completes them',
-    'Numbers are the sides (of a card: its values; of a directory: their names); icon: and name: are the directory itself and are not for cards',
+    'Numbers are the sides (of a card: its values; of a directory: their names); icon: and name: are the directory itself and are not for cards; next: and prev: are for cards only',
     'Directory: icon: sets the icon, nothing after the colon takes it away; name: sets the title, which must be unique in its directory and can not contain /',
     'Card: only the sides you name change; the id, the schedule and the question only marks stay',
+    'Card: next: and prev: set when it may be repeated and when it was repeated last: now, 1m, -1m, +2h, 1d; the time is counted from now, not from the old value; s, m, h, d are seconds, minutes, hours, days',
     'Card: it has as many sides as its directory, edit does not add or remove them (edit the directory)',
     'Card: a side that is question only (touch ?) can be changed too',
     'Directory: a name at a place that exists renames the side, the cards go by place and are not touched',
@@ -118,16 +125,38 @@ export const edit: TerminalCommand = {
     const id = titled?.id ?? what;
 
     if (kind === 'card') {
-      const edits = parseEdits(words);
-      const { before, after } = await ctx.core.editCard(id, edits);
-      const lines = after
-        .map((value, index) => ({ value, index }))
-        .filter(({ value, index }) => value !== before[index])
-        .map(({ value, index }) => `  side ${index + 1}: ${show(before[index])} -> ${show(value)}`);
+      const { sides, times } = parseCardEdits(words);
+      const now = Date.now();
+      const lines: string[] = [];
+
+      /** the sides first: if one is wrong nothing is written, not even the times */
+      let changed = 0;
+      if (sides.length > 0) {
+        const { before, after } = await ctx.core.editCard(id, sides);
+        for (const [index, value] of after.entries()) {
+          if (value === before[index]) continue;
+          changed++;
+          lines.push(`  side ${index + 1}: ${show(before[index])} -> ${show(value)}`);
+        }
+      }
+
+      if (times.next !== undefined || times.prev !== undefined) {
+        const was = (await ctx.core.card(id))!;
+        const card = await ctx.core.reschedule(id, {
+          next: times.next === undefined ? undefined : now + times.next,
+          prev: times.prev === undefined ? undefined : now + times.prev,
+        });
+        if (times.next !== undefined)
+          lines.push(`  next: ${formatTime(was.next)} -> ${formatTime(card.next)}`);
+        if (times.prev !== undefined)
+          lines.push(`  prev: ${formatTime(was.prev)} -> ${formatTime(card.prev)}`);
+        changed++;
+      }
+
       ctx.out(
         [
           `Edited card ${id}`,
-          ...(lines.length > 0 ? lines : ['  nothing differs: the values were the same']),
+          ...(changed > 0 ? lines : ['  nothing differs: the values were the same']),
         ].join('\n')
       );
       return;

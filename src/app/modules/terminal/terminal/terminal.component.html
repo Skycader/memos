@@ -12,6 +12,35 @@
   </div>
 </ng-template>
 
+<!-- a card of the repetition mode: the frame, three rows of chips and text -->
+<ng-template #cardview let-host="host" let-card="card">
+  <div class="seg seg-top"><pre class="line">{{ host }}</pre></div>
+  <div class="seg seg-mid">
+    <span class="chip chip-field" *ngFor="let side of card.shown">{{ side.name }}</span>
+    <span class="chip">{{ card.dir }}</span>
+    <span class="chip chip-rank" *ngIf="card.rank">{{ card.rank }}</span>
+  </div>
+  <div class="seg seg-mid card-body" *ngFor="let side of card.shown">
+    <pre class="line">{{ side.value }}</pre>
+  </div>
+  <div class="seg seg-mid">
+    <span class="chip" [class.chip-late]="card.late">{{ card.need }}</span>
+    <span class="chip">{{ card.age }}</span>
+    <span class="chip chip-menu">
+      <svg viewBox="0 0 16 16" width="11" height="11" focusable="false" aria-hidden="true">
+        <circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path
+          d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        />
+      </svg>
+      /help
+    </span>
+  </div>
+</ng-template>
+
 <ng-template #confirm let-word="word">
   <span class="chip chip-confirm">CONFIRM</span>
   <span class="type">Type</span>
@@ -31,11 +60,59 @@
         <pre class="line answer"> {{ line.text }}</pre>
       </div>
     </div>
-    <pre *ngIf="line.kind !== 'ask'" class="line" [class.err]="line.kind === 'err'">{{ line.text }}</pre>
+    <!-- an answered card stays as it was shown -->
+    <div *ngIf="line.kind === 'card' && line.card as c" class="ask">
+      <ng-container *ngTemplateOutlet="cardview; context: { host: line.host, card: c }"></ng-container>
+      <div class="seg seg-bottom">
+        <pre class="line">$ {{ line.text }}</pre>
+      </div>
+    </div>
+    <!-- a row of chips: a result with its time -->
+    <div *ngIf="line.kind === 'chips'" class="chips-row">
+      <span
+        *ngFor="let chip of line.chips"
+        class="chip"
+        [class.chip-ok]="chip.kind === 'ok'"
+        [class.chip-time]="chip.kind === 'time'"
+      >
+        <svg
+          *ngIf="chip.kind === 'time'"
+          viewBox="0 0 16 16"
+          width="11"
+          height="11"
+          focusable="false"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <path
+            d="M8 4.5V8l2.5 1.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        {{ chip.text }}
+      </span>
+    </div>
+    <pre
+      *ngIf="line.kind !== 'ask' && line.kind !== 'card' && line.kind !== 'chips'"
+      class="line"
+      [class.err]="line.kind === 'err'"
+      >{{ line.text }}</pre
+    >
   </ng-container>
 
   <div class="prompt">
-    <ng-container *ngIf="question as q; else plain">
+    <ng-container *ngIf="card as c">
+      <ng-container *ngTemplateOutlet="cardview; context: { host: promptHost, card: c }"></ng-container>
+      <div class="seg seg-bottom">
+        <pre class="line">$ </pre>
+        <ng-container *ngTemplateOutlet="field"></ng-container>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="!card && question as q">
       <ng-container
         *ngTemplateOutlet="head; context: { host: promptHost, notes: q.notes }"
       ></ng-container>
@@ -45,14 +122,14 @@
         <ng-container *ngTemplateOutlet="field"></ng-container>
       </div>
     </ng-container>
-    <ng-template #plain>
+    <ng-container *ngIf="!card && !question">
       <pre class="line">{{ promptTop }}</pre>
       <!-- a div, not a label: a label hands the focus to the input on any click and drops a selection -->
       <div class="input-row">
         <pre class="line">╰─$ </pre>
         <ng-container *ngTemplateOutlet="field"></ng-container>
       </div>
-    </ng-template>
+    </ng-container>
   </div>
 </div>
 

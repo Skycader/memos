@@ -131,11 +131,12 @@ export class CoreService {
     if (contents.length > 0 && new Set(questionOnly).size >= contents.length)
       throw new Error('Every side is question only: at least one side must be left to answer');
 
-    const spec: CardSPEC = { status: makeArrays() };
+    const now = Date.now();
+    const spec: CardSPEC = { status: makeArrays(), born: now };
     /** only cards that have such a side carry the field: the others stay as they were */
     if (questionOnly.length > 0) spec.qfields = [...new Set(questionOnly)].sort((a, b) => a - b);
     const id = await this.freeId('card');
-    await this.db.add.card(id, owner, contents, Date.now(), Date.now(), spec);
+    await this.db.add.card(id, owner, contents, now, now, spec);
   }
 
   /**
@@ -280,6 +281,32 @@ export class CoreService {
     const moved = await this.db.update.moveCard(id, to);
     if (moved === undefined) throw new Error(`There is no card with the id ${id}`);
     return { target: moved.target, sides: moved.card.contents.length };
+  }
+
+  /**
+   * Every card in a directory and in the directories below it, at any depth, each with the
+   * directory it lies in. '/' means the whole database
+   */
+  public async cardsUnder(owner: string): Promise<{ card: Card; dir: Directory }[]> {
+    return await this.db.get.cardsUnder(owner);
+  }
+
+  /**
+   * One card by id, undefined if there is none
+   */
+  public async card(id: string): Promise<Card | undefined> {
+    return (await this.db.get.cardById(id))[0];
+  }
+
+  /**
+   * Write a new schedule of a card: only `next` and `prev` change (a moment that is not given
+   * stays), nothing else on the card
+   * @throws Error if there is no such card
+   */
+  public async reschedule(id: string, schedule: { next?: number; prev?: number }): Promise<Card> {
+    const card = await this.db.update.cardSchedule(id, schedule);
+    if (card === undefined) throw new Error(`There is no card with the id ${id}`);
+    return card;
   }
 
   /**

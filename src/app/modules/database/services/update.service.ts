@@ -30,6 +30,24 @@ export class UpdateService {
   }
 
   /**
+   * Write when a card comes back: `next` and `prev` (one of them or both), nothing else changes
+   * @returns the card as it is now, undefined if there is no such card
+   */
+  public async cardSchedule(
+    id: string,
+    schedule: { next?: number; prev?: number }
+  ): Promise<Card | undefined> {
+    return await db.transaction('rw', db.card, async () => {
+      const card = await db.card.get(id as any);
+      if (card === undefined) return undefined;
+      const next = schedule.next ?? card.next;
+      const prev = schedule.prev ?? card.prev;
+      await db.card.update(id as any, { next, prev });
+      return { ...card, next, prev };
+    });
+  }
+
+  /**
    * Put a directory into another one (or into the root, '/'). Only its `owner` changes: everything
    * inside points at the id of the directory, so it goes along and keeps its ids.
    * Checked and written in one transaction, so nothing can change in between

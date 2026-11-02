@@ -107,6 +107,44 @@ called bare it shows the current value **and** the available ones, a wrong value
 - A help ends with **one** empty line before the next prompt. That needs two line breaks at the
   end of the text: the browser does not draw a single trailing one (`withBlankLineAfter`).
 
+## Repetition mode (`ask`)
+
+`ask [path]` shows the cards that are due (`next` is in the past) under the path, the most
+overdue first, one at a time. It works like a confirmation: while it runs, every line typed is an
+answer or a `/command` of the mode, not a command of the shell, and it is kept out of the history.
+`ShellService.card` holds the card on the screen; a command shows one with `ctx.prompt(card)`.
+
+```
+╭─axl@memos /Demo/French
+[ Original ] [ 🇫🇷 French ]
+la maison
+[ 22% ] [ 00:13:22 ] [ /help ]
+╰─$ <the empty input hints the field to type>
+```
+
+- The chips of the last row: **need** (how late the card is, relative to the expected wait; see
+  [domain.md](domain.md)), **age** (`dd:hh:mm` since the card was made), the commands.
+- `exit` or `done` (with or without a `/`) and Esc leave. Tab completes `/commands`.
+- Commands: `/postpone [time]` (10m by default, moves only `next`), `/nullify`, `/same` (a right
+  answer with the growth of 1), `/tip`, `/help`. A wrong answer only says the percent that matches.
+- Rules and arithmetic are pure functions in `repeat/schedule.ts`, checked by Karma.
+
+### Setting the times of a card by hand
+
+`edit <card id> next:X prev:X` writes the two moments of a card, so a card can be made due, or
+brought to any state, without waiting. `X` is counted **from now**, not from the old value:
+
+| Typed | Result |
+| --- | --- |
+| `next:now` | `next` = now: the card may be repeated at once |
+| `next:1m` / `next:+1m` | one minute after now |
+| `next:-1m` | one minute before now (the card is due) |
+| `prev:now`, `prev:1m`, `prev:-1m` | the same for the last repeat |
+
+Units are `s`, `m`, `h`, `d` (`2h`, `-1d`, `90s`); a bare number is minutes. The two can be given
+together with sides: `edit Lzad 2:chien next:now`. The report shows the old and the new time as
+`yyyy-mm-dd hh:mm:ss`. Everything is checked first: a wrong side or time changes nothing.
+
 ## Keys
 
 ↑ / ↓ history, Ctrl+L clears the screen.

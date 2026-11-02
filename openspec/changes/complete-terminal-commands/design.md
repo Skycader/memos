@@ -143,6 +143,26 @@ rename touches no card; adding or taking out a side changes `contents`, `spec.st
 together (`side-ops`). `N:empty` / `N:drop` are the words that mean "take out"; they are reserved,
 so a side can not be named `empty` or `drop` through `edit` (it can through `mkdir`).
 
+### D18. The repetition mode `ask` (a first version before `study`)
+`ctx.prompt(card)` is the sibling of `ctx.confirm` (D16): the shell keeps `waiting` and a `card` (a `CardView`
+with the texts of the chips); the view draws it as the prompt, hands the next line to `shell.answer`, and
+leaves the answered card on the screen. In tests the lines come from `capture(line, answers)` and `/exit` is
+the line when they run out. The rules live in `repeat/schedule.ts` (pure: need, age, spans, the next moment
+after an answer, postpone, nullify, same, the side to ask, matching, similarity, the tip mask) with Karma
+specs; the command (`commands/repeat.ts`, group `repeat`) only wires them to the core: `CoreService.cardsUnder`
+walks the subtree once, `reschedule` writes `next` and `prev` in one transaction. `spec.born` keeps the
+creation time inside the JSON `spec`, so Dexie needs no new version. The next moment of a right answer is
+`now + survived * growth`, where `survived = max(next - prev, now - prev, 5 min)`: it follows the time the card
+really stood. A wrong answer writes nothing (the owner's choice): only the percent of the right answer is
+said. The results are chips (`ctx.chips`, green `--ok` for a success, a clock icon for a time); a view that
+has none gets plain text. D12 and D13 still apply: the review log, SM-2 proper and the grades are not part of
+this version.
+
+### D19. Times of a card by hand
+`edit` splits the words of a card into `next:` / `prev:` and `N:value` (`parseCardEdits`); the sides are
+written first and refuse the whole command when one is wrong, then the times. A time is a shift from now
+(`parseOffset`), never from the old value, so `next:-1m` always means "due".
+
 ## Risks / Trade-offs
 
 - **[A side can not be named `empty` or `drop` with `edit`]** → the words are reserved by D17; `mkdir`

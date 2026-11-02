@@ -27,6 +27,7 @@ const ITEM = '    · ';
 const GROUPS: [TerminalCommand['group'], string][] = [
   ['navigation', 'Navigation'],
   ['edit', 'Data manipulation'],
+  ['repeat', 'Repetition'],
   ['data', 'Import and export'],
   ['system', 'System'],
   ['diagnostics', 'Testing and diagnostics'],

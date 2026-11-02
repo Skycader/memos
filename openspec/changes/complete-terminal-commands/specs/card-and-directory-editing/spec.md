@@ -196,3 +196,26 @@ After any command of this capability, `doctor` SHALL report no new orphans, and 
 #### Scenario: Doctor after moves
 - **WHEN** `mv`, `cp`, `rename`, `edit` and `rmdir` have run successfully
 - **THEN** `doctor` finds nothing hanging without a parent
+
+### Requirement: Setting the times of a card by hand
+The system SHALL let `edit <card id>` set the two moments of a card with `next:X` and `prev:X`, where `X` is `now`, or a time with a sign counted from now: `1m`, `+1m`, `-1m`, `2h`, `-1d`; units are `s`, `m`, `h`, `d`, a bare number is minutes. Each moment SHALL be given at most once, only the ones named SHALL change, and they MAY be given together with sides.
+
+#### Scenario: Now
+- **WHEN** the user runs `edit Lzad next:now`
+- **THEN** `next` is the current time and `prev` is as it was
+
+#### Scenario: Before and after now
+- **WHEN** the user runs `edit Lzad next:-1m` or `edit Lzad prev:1m`
+- **THEN** the moment is one minute before, or after, the current time, whatever it was before
+
+#### Scenario: Together with sides
+- **WHEN** the user runs `edit Lzad 2:chienne next:2h`
+- **THEN** both are written and the report shows the old and the new side and time
+
+#### Scenario: Bad time
+- **WHEN** a time is not `now` or a span, is given twice, or a side in the same command is wrong
+- **THEN** the terminal prints an error and nothing changes, not even the other words of the command
+
+#### Scenario: A directory
+- **WHEN** `next:` or `prev:` is given for a directory
+- **THEN** the terminal prints an error and nothing changes

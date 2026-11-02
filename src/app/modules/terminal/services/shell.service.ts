@@ -8,7 +8,7 @@ import { SeedService } from '../../debug/services/seed.service';
 import { ExchangeService } from '../../exchange/exchange.service';
 import { FileService } from '../../exchange/file.service';
 import { allCommandNames, COMMANDS, findCommand } from '../commands';
-import { CommandContext, Output, Question } from '../commands/command';
+import { CardView, CommandContext, Output, Question } from '../commands/command';
 import { TerminalService } from './terminal.service';
 import { QUOTE, tokenize } from './tokenizer';
 
@@ -39,6 +39,9 @@ export class ShellService {
   /** what the waiting command asks: the view draws it as the prompt */
   public question: Question | null = null;
 
+  /** the card that the waiting command shows (repetition mode): the view draws it as the prompt */
+  public card: CardView | null = null;
+
   /**
    * Is a command waiting for an answer? Then the next line typed is that answer,
    * not a command: the view hands it over with answer()
@@ -54,6 +57,7 @@ export class ShellService {
     const waiting = this.waiting;
     this.waiting = null;
     this.question = null;
+    this.card = null;
     waiting?.(line);
   }
 
@@ -80,6 +84,29 @@ export class ShellService {
       });
     }
     return line.trim() === question.word;
+  }
+
+  /**
+   * Show a card and wait for a line. Like confirm, but any line is an answer
+   * @param answers if given (a test), the lines come from it, and `/exit` when it runs out;
+   * the card is printed as plain text then
+   */
+  private async prompt(card: CardView, io: Output, answers?: string[]): Promise<string> {
+    if (answers) {
+      const names = card.shown.map((side) => `[${side.name}]`).join(' ');
+      io.out(
+        [
+          `${names} [${card.dir}] [${card.rank || '...'}]`,
+          ...card.shown.map((side) => side.value),
+          `[${card.need}] [${card.age}] [/help]`,
+        ].join('\n')
+      );
+      return answers.shift() ?? '/exit';
+    }
+    return await new Promise<string>((resolve) => {
+      this.card = card;
+      this.waiting = resolve;
+    });
   }
 
   /**
@@ -195,7 +222,10 @@ export class ShellService {
   private context(io: Output, answers?: string[]): CommandContext {
     return {
       ...io,
+      chips: (items) =>
+        io.chips ? io.chips(items) : io.out(items.map((item) => item.text).join(' ')),
       confirm: (question) => this.confirm(question, io, answers),
+      prompt: (card) => this.prompt(card, io, answers),
       terminal: this.terminal,
       core: this.core,
       debug: this.debug,

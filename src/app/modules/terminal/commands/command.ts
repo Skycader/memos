@@ -9,10 +9,23 @@ import { FileService } from '../../exchange/file.service';
 import { TerminalService } from '../services/terminal.service';
 
 /**
+ * One chip of a row (see Output.chips)
+ * · ok    green, something went well: `✓ success`
+ * · time  the plain look with a clock icon in front: a span of time `00:00:18`
+ * · plain the plain look
+ */
+export interface Chip {
+  text: string;
+  kind: 'ok' | 'time' | 'plain';
+}
+
+/**
  * Where a command writes to
  * The terminal view is one implementation, a collector for tests is another
  */
 export interface Output {
+  /** a row of chips; a view without them (a test) gets the texts joined by a space instead */
+  chips?(items: Chip[]): void;
   out(text: string): void;
   err(text: string): void;
   clear(): void;
@@ -26,6 +39,30 @@ export interface Question {
   notes: string[];
   /** the word the user has to type to agree, shown as a chip */
   word: string;
+}
+
+/**
+ * A card of the repetition mode as the user sees it:
+ *   [ Original ] [ 🇫🇷 French ] [ rank ]
+ *   A dog
+ *   [ 22% ] [ 00:13:22 ] [ /help ]
+ */
+export interface CardView {
+  /** the sides that are shown, with the names of their fields */
+  shown: { name: string; value: string }[];
+  /** the name of the field the user has to type: it is the hint of an empty input */
+  want: string;
+  /** icon and title of the directory of the card */
+  dir: string;
+  /** the rank of the card: not defined yet, empty for now */
+  rank: string;
+  /** how much the card is needed, `22%`, and how long it has lived, `00:13:22` */
+  need: string;
+  age: string;
+  /** the card is past its time (need of 100% or more) */
+  late: boolean;
+  /** the commands of the mode, `/help` first: Tab completes them */
+  commands: string[];
 }
 
 /**
@@ -47,12 +84,20 @@ export interface ShellRunner {
  * Everything a command gets to work with
  */
 export interface CommandContext extends Output, ShellRunner {
+  /** print a row of chips */
+  chips(items: Chip[]): void;
   /**
    * Ask the user to confirm what can not be undone: shows the warning, waits for the next line
    * they type and says whether it is exactly the word of the question (Esc cancels).
    * In tests the answers come from capture(line, answers)
    */
   confirm(question: Question): Promise<boolean>;
+  /**
+   * Show a card and wait for the next line the user types (the answer, or a `/command`).
+   * In tests the lines come from capture(line, answers); when they run out the line is `/exit`,
+   * so a test never hangs
+   */
+  prompt(card: CardView): Promise<string>;
   /** session: current directory and navigation */
   terminal: TerminalService;
   core: CoreService;
@@ -88,7 +133,7 @@ export interface TerminalCommand {
   /** rules, limits and warnings: shown by `help <command>` */
   notes?: string[];
   /** commands of one group go together in help (the titles are in the `help` command) */
-  group: 'navigation' | 'edit' | 'data' | 'system' | 'diagnostics';
+  group: 'navigation' | 'edit' | 'repeat' | 'data' | 'system' | 'diagnostics';
   /**
    * Run the command. Print with ctx.out / ctx.err, throw to report an error.
    * Async by default: just await, there is no need for placeholders

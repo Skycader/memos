@@ -1,3 +1,5 @@
+import { parseOffset } from '../../repeat/schedule';
+
 /**
  * One change of a card: put a value into a side
  */
@@ -33,6 +35,37 @@ export function parseEdits(words: string[]): SideEdit[] {
     edits.push({ position, value: match[2] });
   }
   return edits;
+}
+
+/** a moment of a card to set, as a shift from now (0 is now) */
+export interface TimeEdits {
+  next?: number;
+  prev?: number;
+}
+
+/**
+ * Split the words of `edit` for a card: `next:X` and `prev:X` set the moments of the schedule,
+ * the others are `N:value` sides. Each of the two may be given once
+ *
+ * next:now  ->  { next: 0 }          next:-1m  ->  { next: -60000 }
+ * prev:1m   ->  { prev: 60000 }
+ *
+ * @throws Error if a time is not now / 1m / -1m / +2h, or is given twice
+ */
+export function parseCardEdits(words: string[]): { sides: SideEdit[]; times: TimeEdits } {
+  const times: TimeEdits = {};
+  const sideWords: string[] = [];
+  for (const word of words) {
+    const match = /^(next|prev):([\s\S]*)$/.exec(word);
+    if (!match) {
+      sideWords.push(word);
+      continue;
+    }
+    const key = match[1] as keyof TimeEdits;
+    if (times[key] !== undefined) throw new Error(`${key}: is given twice`);
+    times[key] = parseOffset(match[2]);
+  }
+  return { sides: sideWords.length > 0 ? parseEdits(sideWords) : [], times };
 }
 
 /** the words of `edit` that are about the directory itself and not about its sides */

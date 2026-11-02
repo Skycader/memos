@@ -98,6 +98,49 @@
     font-weight: bold;
   }
 
+  /* a result with its time: a green chip, and a chip with a clock */
+  .chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 1px 0;
+  }
+
+  .chip-ok {
+    border-color: var(--ok);
+    color: var(--ok);
+    background: transparent;
+  }
+
+  .chip-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--fg);
+  }
+
+  /* the card of the repetition mode */
+  .chip-field {
+    font-weight: bold;
+  }
+
+  .chip-late {
+    border-color: var(--err);
+    color: var(--err);
+  }
+
+  .chip-menu {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.75;
+  }
+
+  .card-body .line {
+    font-size: 1.15em;
+  }
+
   .type {
     margin: 0 0.5ch;
   }

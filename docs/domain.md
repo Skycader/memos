@@ -23,6 +23,37 @@ storage, the scheduler that uses it is **planned**).
 
 The simplest case is Question -> Answer: two fields, one is shown, the other is the answer.
 
+## Repetition (first version, `ask`)
+
+A card keeps two moments: `prev` (the last repeat, or when it was made) and `next` (the first
+moment it may be repeated). Everything else is computed:
+
+- **interval** = `next - prev`, how long the card was meant to rest.
+- **need** = `(now - next) / (growth * interval)`, 0 before `next`. With growth 2 and a rest of 2 h the
+  expected wait is 4 h: 3 h late is 75%, 4 h is 100%. A new card has no interval, so 5 minutes
+  (`MIN_INTERVAL`) stand in for it.
+- **age** = `now - spec.born`, shown as `dd:hh:mm`; cards made before `born` was kept use the earlier
+  of `prev` and `next`.
+- A right answer: `prev = now`, `next = now + survived * 2` (`* 1.5` after `/tip`), where `survived` is
+  the time the card really stood without a repeat, `now - prev`, but not less than the planned
+  rest `interval` and not less than 5 minutes. A card of 16 minutes comes back after 32; a card
+  that rested 12 h and is answered after 12 h, after 24 h; one answered after 20 h, after 40 h.
+  A wrong answer changes nothing: the screen only says how much of the right answer was typed
+  (`wrong, 80% of the right answer`, the answer is not shown), and the same card stays.
+- `/same` is literally a right answer with the growth of 1: `prev = now`, the rest stays the same.
+- `/postpone [time]` adds the time (10 minutes by default) to `next` only and leaves `prev`, so the
+  rest grows by it. A card that is very late may still be due after it.
+- `/nullify` makes the card due at once, as a new one.
+- The side to type is picked at random among the sides that are not question only; the question
+  only sides are shown, or the first other side if there are none. Tip fields do not exist yet, so
+  `/tip` shows the answer with its letters hidden (`Un chien` -> `U_ c____`).
+
+To set the moments by hand: `edit <card id> next:now|1m|-1m prev:...`, counted from now
+(see [terminal.md](terminal.md)).
+
+Not done yet: ranks, the review log, per-field repetition state (`spec.status` is still empty), the
+tip setting, `/postpone` through a clickable menu.
+
 ## Kinds of fields
 
 | Kind | Meaning | Status |
