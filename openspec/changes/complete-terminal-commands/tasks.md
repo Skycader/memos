@@ -68,7 +68,7 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 
 ## 8. Stage 4a: the scheduler
 
-- [x] 8.0 First version of repetition: `ask [path]` (group Repetition) with `ctx.prompt`, a card drawn from chips, `/postpone`, `/nullify`, `/same`, `/tip`, `/help`, `exit`/`done`/Esc, Tab; `repeat/schedule.ts` (need, age, `dd:hh:mm`, spans, answers), `CoreService.cardsUnder` and `reschedule`; right answers grow from the time the card stood (the time since `prev` times 2: 16 min -> 32), `/same` is a right answer with growth 1, `/postpone` moves only `next`, a wrong answer only says the percent, results are chips; verified by Karma (86/86), 8 checks in `test` (163/163) and screenshots in Chrome in both themes. Still to do under 8.1-9: SM-2 proper, the review log, ranks, the tip setting
+- [x] 8.0 First version of repetition: `ask [path]` (group Repetition) with `ctx.prompt`, a card drawn from chips, `/postpone`, `/nullify`, `/same`, `/tip`, `/help`, `exit`/`done`/Esc, Tab; `repeat/schedule.ts` (need, age, `dd:hh:mm`, spans, answers), `CoreService.cardsUnder` and `reschedule`; right answers grow from the time the card stood (the time since `prev` times 2: 16 min -> 32), `/same` is a right answer with growth 1, `/postpone` moves only `next`, a wrong answer only says the percent, results are chips; verified by Karma (91/91), 9 checks in `test` (166/166), including the story of a card (10 min -> 20 min, a whole day later -> 48 h) and screenshots in Chrome in both themes. Still to do under 8.1-9: SM-2 proper, the review log, ranks, the tip setting
 
 - [ ] 8.1 Add `repeat/schedule.ts`, a pure SM-2 function with a tip penalty option (default growth factor 1.5 instead of 2) and no Angular or Dexie imports; verify `test` checks for determinism, good answer grows, forgotten restarts, tip makes a smaller interval
 - [ ] 8.2 Add the first real Karma specs for `schedule` (and for `tokenize` and the CSV parser, which are pure); verify `npx ng test --watch=false --browsers=ChromeHeadless` is green
@@ -90,6 +90,8 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 - [ ] 10.3 Document the format in a new `docs/backup.md`, link it from `docs/README.md`, and say in `docs/exchange.md` what CSV does not carry; verify the example file opens with `restore --dry-run`
 
 ## 11. Stage 5b: style and config
+
+- [x] 11.0 `font line <1-3|default>` (done early, with the font): the space between the lines of the terminal (`line-height` through `--line`), kept in `localStorage` (`memos.line`), `1,5` works as `1.5`, Tab completes `line`, bare `font line` shows the value; `FontService.setLine`/`parseLine`; verified by a `test` check (166/166) and `docs/terminal.md`. Not yet looked at on screen
 
 - [ ] 11.1 Add `StyleService` and the `style emoji|plain` command (bare shows current and available, wrong value shows usage, Tab completes), and make `ls` read it with aligned columns; verify default look is unchanged and both looks in `test`
 - [ ] 11.2 Include aliases and style in the backup settings and restore them; verify a round trip

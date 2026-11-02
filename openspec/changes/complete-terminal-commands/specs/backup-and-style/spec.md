@@ -53,3 +53,18 @@ The system SHALL provide `style emoji|plain` that sets how `ls` marks directorie
 #### Scenario: Wrong value
 - **WHEN** the user runs `style fancy`
 - **THEN** the terminal prints `Usage: style <emoji|plain>`
+
+### Requirement: Space between lines
+The system SHALL provide `font line <value>` that sets the space between the lines of the terminal (the CSS `line-height`) to a number from 1 to 3, or to the standard 1.25 with `default`. The choice SHALL be remembered in `localStorage` and not erased by `drop`. Bare `font line` SHALL show the current value, and Tab SHALL complete `line` after `font`.
+
+#### Scenario: A new space
+- **WHEN** the user runs `font line 1.6`
+- **THEN** the lines of the terminal move apart at once, `Line space: 1.6` is printed and the value is still there after a reload
+
+#### Scenario: A comma
+- **WHEN** the user runs `font line 1,5`
+- **THEN** it works as `1.5`
+
+#### Scenario: Wrong value
+- **WHEN** the user runs `font line 4` or `font line wide`
+- **THEN** the terminal prints `Usage: font line <1-3|default>` and nothing changes
