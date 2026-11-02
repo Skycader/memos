@@ -32,12 +32,14 @@ moment it may be repeated). Everything else is computed:
 - **need** = `(now - next) / (growth * interval)`, 0 before `next`. With growth 2 and a rest of 2 h the
   expected wait is 4 h: 3 h late is 75%, 4 h is 100%. A new card has no interval, so 5 minutes
   (`MIN_INTERVAL`) stand in for it.
-- **age** = `now - spec.born`, shown as `dd:hh:mm`; cards made before `born` was kept use the earlier
-  of `prev` and `next`.
-- A right answer: `prev = now`, `next = now + survived * 2` (`* 1.5` after `/tip`), where `survived` is
-  the time the card really stood without a repeat, `now - prev`, but not less than the planned
-  rest `interval` and not less than 5 minutes. A card of 16 minutes comes back after 32; a card
-  that rested 12 h and is answered after 12 h, after 24 h; one answered after 20 h, after 40 h.
+- **age** = `now - prev`, how long the card has stood without a repeat, shown as `dd:hh:mm`. A card
+  keeps only `prev` and `next`: there is no birth time.
+- A right answer: `prev = now`, `next = now + age * 2` (`* 1.5` after `/tip`), where `age` is the
+  time the card has stood without a repeat, `now - prev` (the number on the age chip), but not
+  less than 5 minutes. A card that stood 16 minutes comes back after 32; one that stood 12 h,
+  after 24 h; one answered after 20 h, after 40 h. The planned interval does not enter into it.
+  Example: a card is added; 10 minutes later a right answer gives a rest of 20 minutes; if the
+  player comes a whole day after that, the next rest is 48 hours (2 x the day it stood), not 40 minutes.
   A wrong answer changes nothing: the screen only says how much of the right answer was typed
   (`wrong, 80% of the right answer`, the answer is not shown), and the same card stays.
 - `/same` is literally a right answer with the growth of 1: `prev = now`, the rest stays the same.

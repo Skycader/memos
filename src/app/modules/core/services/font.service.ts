@@ -10,6 +10,12 @@ export const FONTS = ['default', 'JetBrainsMono'] as const;
 export type Font = (typeof FONTS)[number];
 
 const STORAGE_KEY = 'memos.font';
+const LINE_KEY = 'memos.line';
+
+/** The space between lines is a plain number (the CSS line-height): 1 is tight, 2 is airy */
+export const LINE_DEFAULT = 1.25;
+export const LINE_MIN = 1;
+export const LINE_MAX = 3;
 
 @Injectable({
   providedIn: 'root',
@@ -22,8 +28,35 @@ export class FontService {
    */
   public current: Font = 'default';
 
+  /** Space between the lines of the terminal (line-height), set by `font line` */
+  public line = LINE_DEFAULT;
+
   constructor(@Inject(DOCUMENT) private document: Document) {
     this.apply(this.load());
+    this.applyLine(this.loadLine());
+  }
+
+  /**
+   * Set the space between lines and remember it. The caller checks the value with parseLine
+   */
+  public setLine(line: number) {
+    this.applyLine(line);
+    try {
+      localStorage.setItem(LINE_KEY, String(line));
+    } catch {
+      /** no storage: the value just won't be remembered */
+    }
+  }
+
+  /**
+   * The typed value as a number, or undefined when it is not a number from LINE_MIN to LINE_MAX.
+   * `default` is the standard space; a comma works as a point (1,5)
+   */
+  public parseLine(text: string | undefined): number | undefined {
+    if (text?.toLowerCase() === 'default') return LINE_DEFAULT;
+    if (text === undefined || !/^\d+([.,]\d+)?$/.test(text)) return undefined;
+    const value = Number(text.replace(',', '.'));
+    return value >= LINE_MIN && value <= LINE_MAX ? value : undefined;
   }
 
   /**
@@ -48,6 +81,19 @@ export class FontService {
   private apply(font: Font) {
     this.current = font;
     this.document.documentElement.setAttribute('data-font', font);
+  }
+
+  private applyLine(line: number) {
+    this.line = line;
+    this.document.documentElement.style.setProperty('--line', String(line));
+  }
+
+  private loadLine(): number {
+    try {
+      return this.parseLine(localStorage.getItem(LINE_KEY) ?? undefined) ?? LINE_DEFAULT;
+    } catch {
+      return LINE_DEFAULT;
+    }
   }
 
   private load(): Font {

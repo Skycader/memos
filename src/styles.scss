@@ -6,6 +6,8 @@
   --fg: #000000;
   --err: #c62828;
   --ok: #2e7d32;
+  --warn: #b26a00;
+  --ok-fill: #6bbf7a;
   color-scheme: light;
 }
 :root[data-theme="dark"] {
@@ -13,6 +15,8 @@
   --fg: #d4d4d4;
   --err: #f47067;
   --ok: #57ab5a;
+  --warn: #d29922;
+  --ok-fill: #3d8f50;
   color-scheme: dark;
 }
 

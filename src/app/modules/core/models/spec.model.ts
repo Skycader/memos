@@ -8,11 +8,6 @@ export interface CardSPEC {
    */
   qfields?: number[];
   /**
-   * When the card was made (ms). The age of a card on the screen of `ask` counts from it.
-   * Cards made before it was kept have none, see bornOf in repeat/schedule.ts
-   */
-  born?: number;
-  /**
    * Max interval
    */
   maxInterval?: number;

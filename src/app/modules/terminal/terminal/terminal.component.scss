@@ -8,7 +8,7 @@
   color: var(--fg);
   font-family: var(--font);
   font-size: 13.33px;
-  line-height: 1.25;
+  line-height: var(--line, 1.25);
 
   .line {
     margin: 0;
@@ -104,12 +104,35 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    margin: 1px 0;
+    margin: 4px 0;
   }
 
   .chip-ok {
     border-color: var(--ok);
     color: var(--ok);
+    background: transparent;
+  }
+
+  .chips-row .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chip-warn {
+    border-color: var(--warn);
+    color: var(--warn);
+    background: transparent;
+  }
+
+  /* a zero: the chip is there, but it does not ask for attention */
+  .chip-dim {
+    opacity: 0.45;
+  }
+
+  .chip-err {
+    border-color: var(--err);
+    color: var(--err);
     background: transparent;
   }
 
@@ -135,6 +158,28 @@
     align-items: center;
     gap: 4px;
     opacity: 0.75;
+  }
+
+  /* the age chip fills from the left with green as the typed text follows the right answer;
+     the fill is as round at its right end as the chip itself */
+  .chip-age {
+    position: relative;
+    overflow: hidden;
+
+    .fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: calc(var(--fill, 0) * 100%);
+      border-radius: 999px;
+      background: var(--ok-fill);
+      transition: width 0.12s ease-out;
+    }
+
+    .fill-text {
+      position: relative;
+    }
   }
 
   .card-body .line {

@@ -83,6 +83,10 @@ A command that takes one of a fixed set of values (`font`, `theme`) follows one 
 called bare it shows the current value **and** the available ones, a wrong value says
 `Usage: ... <a|b>`, and `complete` returns the values so Tab finishes them.
 
+`font line <1-3|default>` sets the space between the lines (the CSS `line-height`, 1.25 by default;
+`1,5` works as `1.5`). It is kept in `localStorage` (`memos.line`) and applied through the variable
+`--line`, like the font.
+
 ## Help
 
 `help` is generated from the registry, nothing is written twice.
@@ -124,6 +128,9 @@ la maison
 
 - The chips of the last row: **need** (how late the card is, relative to the expected wait; see
   [domain.md](domain.md)), **age** (`dd:hh:mm` since the card was made), the commands.
+- The age chip fills with green from the left while you type: the length of the start your text
+  shares with the right answer over the length of the answer (`Un` of `Un chat` is 2/7). A wrong
+  letter drops the bar back; an answered card keeps the bar it had.
 - `exit` or `done` (with or without a `/`) and Esc leave. Tab completes `/commands`.
 - Commands: `/postpone [time]` (10m by default, moves only `next`), `/nullify`, `/same` (a right
   answer with the growth of 1), `/tip`, `/help`. A wrong answer only says the percent that matches.

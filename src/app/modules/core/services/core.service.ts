@@ -132,7 +132,7 @@ export class CoreService {
       throw new Error('Every side is question only: at least one side must be left to answer');
 
     const now = Date.now();
-    const spec: CardSPEC = { status: makeArrays(), born: now };
+    const spec: CardSPEC = { status: makeArrays() };
     /** only cards that have such a side carry the field: the others stay as they were */
     if (questionOnly.length > 0) spec.qfields = [...new Set(questionOnly)].sort((a, b) => a - b);
     const id = await this.freeId('card');

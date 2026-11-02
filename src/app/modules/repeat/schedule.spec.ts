@@ -14,12 +14,13 @@ import {
   parseSpan,
   formatTime,
   planRound,
+  progressOf,
   similarity,
   postpone,
   same,
   succeed,
   fail,
-  bornOf,
+  ageOf,
 } from './schedule';
 
 describe('schedule', () => {
@@ -90,9 +91,9 @@ describe('schedule', () => {
     expect(intervalOf(succeed(NOW, card))).toBe(10 * HOUR);
   });
 
-  it('a card answered early grows from the planned rest', () => {
+  it('a card answered early grows from the time it stood, not from the planned rest', () => {
     const card = { prev: NOW - HOUR, next: NOW + HOUR };
-    expect(intervalOf(succeed(NOW, card))).toBe(4 * HOUR);
+    expect(intervalOf(succeed(NOW, card))).toBe(2 * HOUR);
   });
 
   it('same grows from the time the card stood, with the growth of 1', () => {
@@ -138,9 +139,29 @@ describe('schedule', () => {
     expect(same(NOW, { prev: NOW, next: NOW }).next).toBe(NOW + MIN_INTERVAL);
   });
 
-  it('born is kept on the card, or guessed from the moments of an old card', () => {
-    expect(bornOf({ prev: 5, next: 9, spec: { born: 2 } })).toBe(2);
-    expect(bornOf({ prev: 5, next: 9, spec: {} })).toBe(5);
+  it('the story of a card: 10 minutes, then a whole day, and the rest follows the time it stood', () => {
+    /** added: prev and next are the same moment, there is no rest yet */
+    const added = { prev: NOW, next: NOW };
+
+    /** 10 minutes of real time pass, a right answer: the rest is 20 minutes */
+    const first = succeed(NOW + 10 * MINUTE, added);
+    expect(first.prev).toBe(NOW + 10 * MINUTE);
+    expect(intervalOf(first)).toBe(20 * MINUTE);
+
+    /** the player comes a whole day after that repeat (far past the 20 minutes planned) */
+    const second = succeed(first.prev + DAY, first);
+    expect(intervalOf(second)).toBe(48 * HOUR);
+    expect(intervalOf(second)).not.toBe(2 * intervalOf(first));
+  });
+
+  it('age is the time since the last repeat, never negative', () => {
+    expect(ageOf({ prev: NOW - 91_000, next: NOW }, NOW)).toBe(91_000);
+    expect(ageOf({ prev: NOW + MINUTE, next: NOW }, NOW)).toBe(0);
+  });
+
+  it('the rest is made of prev alone: a card that stood 11.5 minutes comes back after 23', () => {
+    const card = { prev: NOW - 11.5 * MINUTE, next: NOW - 100 * MINUTE };
+    expect(intervalOf(succeed(NOW, card))).toBe(23 * MINUTE);
   });
 
   describe('planRound', () => {
@@ -202,6 +223,24 @@ describe('schedule', () => {
     expect(similarity('', 'abc')).toBe(0);
     expect(similarity('xyz', 'abc')).toBe(0);
     expect(similarity('', '')).toBe(1);
+  });
+
+  it('progress is the shared start over the length of the answer', () => {
+    expect(progressOf('', 'Un chat')).toBe(0);
+    expect(progressOf('Un', 'Un chat')).toBeCloseTo(2 / 7, 5);
+    expect(progressOf('un c', 'Un chat')).toBeCloseTo(4 / 7, 5);
+    expect(progressOf('Un chat', 'Un chat')).toBe(1);
+  });
+
+  it('progress stops at the first wrong letter, and ignores case and spaces', () => {
+    expect(progressOf('Ux chat', 'Un chat')).toBeCloseTo(1 / 7, 5);
+    expect(progressOf('x', 'Un chat')).toBe(0);
+    expect(progressOf('  UN   CH', 'Un chat')).toBeCloseTo(5 / 7, 5);
+  });
+
+  it('progress is never more than 1: typing past the answer does not fill more', () => {
+    expect(progressOf('Un chats', 'Un chat')).toBe(1);
+    expect(progressOf('abc', '')).toBe(0);
   });
 
   it('a tip keeps the first letter of every word', () => {

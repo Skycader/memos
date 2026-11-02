@@ -1,4 +1,5 @@
 import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { progressOf } from '../../repeat/schedule';
 import { CardView, Chip, Output, Question } from '../commands/command';
 import { ShellService } from '../services/shell.service';
 
@@ -11,6 +12,8 @@ interface Line {
   host?: string;
   /** an answered card of the repetition mode, drawn as it was shown */
   card?: CardView;
+  /** how much of the right answer was typed when it was answered, the bar of the age chip */
+  progress?: number;
   /** a row of chips */
   chips?: Chip[];
 }
@@ -83,6 +86,12 @@ export class TerminalComponent {
   /** a question of a command is waiting: the prompt turns into the confirmation */
   public get question(): Question | null {
     return this.shell.question;
+  }
+
+  /** how much of the right answer is typed so far, 0 to 1: the age chip fills with it */
+  public get progress(): number {
+    const card = this.shell.card;
+    return card ? progressOf(this.input, card.answer) : 0;
   }
 
   /** a card of the repetition mode is shown: the prompt turns into the card */
@@ -208,7 +217,14 @@ export class TerminalComponent {
     const question = this.shell.question;
     const card = this.shell.card;
     if (question) this.lines.push({ kind: 'ask', text: line, question, host: this.promptHost });
-    if (card) this.lines.push({ kind: 'card', text: line, card, host: this.promptHost });
+    if (card)
+      this.lines.push({
+        kind: 'card',
+        text: line,
+        card,
+        host: this.promptHost,
+        progress: progressOf(line, card.answer),
+      });
     this.shell.answer(line);
     this.scrollDown();
   }

@@ -1,6 +1,6 @@
 import { Card, Directory } from '../../database/services/db';
 import {
-  bornOf,
+  ageOf,
   DEFAULT_POSTPONE,
   formatSpan,
   mask,
@@ -14,7 +14,7 @@ import {
   similarity,
   succeed,
 } from '../../repeat/schedule';
-import { CardView, CommandContext, TerminalCommand } from './command';
+import { CardView, Chip, CommandContext, TerminalCommand } from './command';
 import { cd } from './navigation';
 
 /** the commands of the mode, `/help` first; Tab completes them */
@@ -48,10 +48,11 @@ function viewOf(
   return {
     shown: round.shown.map((index) => ({ name: name(index), value: card.contents[index] })),
     want: name(round.answer),
+    answer: card.contents[round.answer],
     dir: `${dir.icon} ${dir.title}`.trim(),
     rank: '',
     need: `${Math.round(need * 100)}%`,
-    age: formatSpan(now - bornOf(card)),
+    age: formatSpan(ageOf(card, now)),
     late: need >= 1,
     commands: MODE_COMMANDS,
   };
@@ -103,14 +104,17 @@ async function askOne(
         if (matches(line, answer)) {
           card = await ctx.core.reschedule(card.id, succeed(at, card, tip));
           ctx.chips([
-            { text: '✓ success', kind: 'ok' },
+            { text: 'success', kind: 'ok', icon: 'check' },
             { text: formatSpan(card.next - at), kind: 'time' },
           ]);
           return { leave: false, result: 'right', misses };
         }
         /** only said: the schedule stays, the card stays, and the right answer is not shown */
         misses++;
-        ctx.out(`✗ wrong, ${Math.round(similarity(line, answer) * 100)}% of the right answer`);
+        ctx.chips([
+          { text: 'wrong', kind: 'err', icon: 'cross' },
+          { text: `${Math.round(similarity(line, answer) * 100)}% of the right answer`, kind: 'plain' },
+        ]);
         continue;
       }
 
@@ -124,7 +128,7 @@ async function askOne(
         const span = rest.length ? parseSpan(rest.join('')) : DEFAULT_POSTPONE;
         card = await ctx.core.reschedule(card.id, postpone(card, span));
         ctx.chips([
-          { text: 'moved', kind: 'plain' },
+          { text: 'moved', kind: 'warn', icon: 'move' },
           { text: formatSpan(card.next - at), kind: 'time' },
         ]);
         return { leave: false, result: 'moved', misses };
@@ -135,7 +139,7 @@ async function askOne(
       } else if (command.toLowerCase() === '/same') {
         card = await ctx.core.reschedule(card.id, same(at, card));
         ctx.chips([
-          { text: '✓ success', kind: 'ok' },
+          { text: 'success', kind: 'ok', icon: 'check' },
           { text: formatSpan(card.next - at), kind: 'time' },
         ]);
         return { leave: false, result: 'moved', misses };
@@ -207,7 +211,14 @@ export const ask: TerminalCommand = {
       left--;
     }
 
-    ctx.out(`Done: ${count.right} right, ${count.misses} wrong, ${count.moved} moved, ${left} left`);
+    /** a zero fades, anything more takes its colour */
+    const tone = (amount: number, colour: Chip['kind']): Chip['kind'] => (amount > 0 ? colour : 'dim');
+    ctx.chips([
+      { text: `Done: ${count.right} right`, kind: tone(count.right, 'ok'), icon: 'check' },
+      { text: `${count.misses} wrong`, kind: tone(count.misses, 'err'), icon: 'cross' },
+      { text: `${count.moved} moved`, kind: tone(count.moved, 'warn'), icon: 'move' },
+      { text: `${left} left`, kind: left > 0 ? 'plain' : 'dim', icon: 'left' },
+    ]);
   },
   async complete(partial, ctx) {
     return await (cd.complete as NonNullable<typeof cd.complete>)(partial, ctx);

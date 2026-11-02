@@ -10,13 +10,19 @@ import { TerminalService } from '../services/terminal.service';
 
 /**
  * One chip of a row (see Output.chips)
- * · ok    green, something went well: `✓ success`
+ * · ok    green, something went well: `success`
+ * · err   red, something went wrong: `wrong`
  * · time  the plain look with a clock icon in front: a span of time `00:00:18`
+ * · warn  yellow, something to look at: `1 moved`
+ * · dim   the plain look, faded: a zero that needs no attention: `0 wrong`
  * · plain the plain look
+ *
+ * `icon` puts a small SVG picture in front of the text (never a symbol of the font, so every icon looks the same); a `time` chip has the clock by default
  */
 export interface Chip {
   text: string;
-  kind: 'ok' | 'time' | 'plain';
+  kind: 'ok' | 'err' | 'warn' | 'dim' | 'time' | 'plain';
+  icon?: 'check' | 'cross' | 'clock' | 'move' | 'left';
 }
 
 /**
@@ -52,6 +58,8 @@ export interface CardView {
   shown: { name: string; value: string }[];
   /** the name of the field the user has to type: it is the hint of an empty input */
   want: string;
+  /** the right answer: the age chip fills as the typed text follows it (see progressOf) */
+  answer: string;
   /** icon and title of the directory of the card */
   dir: string;
   /** the rank of the card: not defined yet, empty for now */

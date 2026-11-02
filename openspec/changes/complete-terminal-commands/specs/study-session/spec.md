@@ -78,18 +78,22 @@ The system SHALL provide `ask [path]`, a first version of repetition that works 
 
 #### Scenario: Leaving
 - **WHEN** the user types `exit`, `done`, `/exit` or presses Esc
-- **THEN** the mode ends with a line of totals, nothing already answered is lost and the next typed line is an ordinary command
+- **THEN** the mode ends with a row of four chips with an icon each (`Done: N right`, `N wrong`, `N moved`, `N left`), nothing already answered is lost and the next typed line is an ordinary command
+
+#### Scenario: Colours of the totals
+- **WHEN** the totals are shown
+- **THEN** `Done` is green, `wrong` red and `moved` yellow when their number is 1 or more, and each of them is faded at 0; `left` is plain when it is 1 or more and faded at 0
 
 #### Scenario: Question only sides
 - **WHEN** a card has sides marked question only
 - **THEN** they are shown and never asked to be typed; a card with no side left to type is skipped
 
 ### Requirement: How a card comes back
-The system SHALL keep two moments on a card, `prev` (the last repeat, or its creation) and `next` (the first moment it may be repeated), and SHALL compute from them: the interval `next - prev`, the need `(now - next) / (growth * interval)` (0 while not due), and the age since creation (`spec.born`, or the earlier of the two moments for older cards). The interval of a card that has none SHALL count as 5 minutes. All of it SHALL be pure functions with no clock, storage or Angular of their own.
+The system SHALL keep two moments on a card, `prev` (the last repeat, or its creation) and `next` (the first moment it may be repeated), and SHALL compute from them: the interval `next - prev`, the need `(now - next) / (growth * interval)` (0 while not due), and the age, the time the card has stood without a repeat (`now - prev`). A card keeps nothing else about its time: there is no creation time. The interval of a card that has none SHALL count as 5 minutes. All of it SHALL be pure functions with no clock, storage or Angular of their own.
 
 #### Scenario: A right answer
 - **WHEN** a card is answered right (letters in any case, spaces around and between words do not count)
-- **THEN** `prev` becomes now and `next` becomes now plus the time the card stood since `prev` (not less than its planned interval and not less than 5 minutes) times 2, so a card of 16 minutes comes back after 32 and a card that rested 12 hours and was answered after 12 hours after 24
+- **THEN** `prev` becomes now and `next` becomes now plus the age of the card (`now - prev`, not less than 5 minutes) times 2, so a card that stood 16 minutes comes back after 32 and one that stood 12 hours after 24, whatever its planned interval was
 
 #### Scenario: A right answer after a tip
 - **WHEN** `/tip` was used for the answer
@@ -97,7 +101,18 @@ The system SHALL keep two moments on a card, `prev` (the last repeat, or its cre
 
 #### Scenario: A wrong answer
 - **WHEN** the answer is wrong
-- **THEN** the terminal says how many percent of the right answer match, does not show the right answer, writes nothing and keeps the same card
+- **THEN** the terminal prints a red chip `wrong` with a cross icon and a chip with how many percent of the right answer match, does not show the right answer, writes nothing and keeps the same card
+
+### Requirement: Instant feedback while typing
+The age chip of the card SHALL fill with green from the left, with a rounded end like the chip itself, by the share of the right answer already typed: the length of the start that the typed text and the answer have in common (case and extra spaces do not count) over the length of the answer. It SHALL update with every key and stay as it was at the moment of the answer on a card that was answered.
+
+#### Scenario: Typing the start
+- **WHEN** the answer is `Un chat` and the user has typed `Un`
+- **THEN** the chip is filled by 2/7
+
+#### Scenario: A wrong letter
+- **WHEN** the user types `Ux` for `Un chat`
+- **THEN** the chip is filled by 1/7, because what follows the wrong letter does not count
 
 ### Requirement: Commands of the repetition mode
 Inside `ask` the system SHALL accept `/postpone [time]`, `/nullify`, `/same`, `/tip` and `/help`, and Tab SHALL complete them. An unknown `/command` SHALL print an error and keep the card.
@@ -119,4 +134,4 @@ Inside `ask` the system SHALL accept `/postpone [time]`, `/nullify`, `/same`, `/
 - **THEN** the answer is shown with all its letters but the first of each word hidden, and the answer is counted as helped
 
 ### Requirement: The result is shown as chips
-A right answer SHALL be printed as a green chip with the text `✓ success` and a separate chip with the time of the next repeat and a clock icon, not as a sentence. A view that cannot draw chips SHALL get the same texts as one plain line.
+A right answer SHALL be printed as a green chip with the text `success` and a check icon and a separate chip with the time of the next repeat and a clock icon, not as a sentence. A view that cannot draw chips SHALL get the same texts as one plain line.

@@ -150,10 +150,10 @@ leaves the answered card on the screen. In tests the lines come from `capture(li
 the line when they run out. The rules live in `repeat/schedule.ts` (pure: need, age, spans, the next moment
 after an answer, postpone, nullify, same, the side to ask, matching, similarity, the tip mask) with Karma
 specs; the command (`commands/repeat.ts`, group `repeat`) only wires them to the core: `CoreService.cardsUnder`
-walks the subtree once, `reschedule` writes `next` and `prev` in one transaction. `spec.born` keeps the
-creation time inside the JSON `spec`, so Dexie needs no new version. The next moment of a right answer is
-`now + survived * growth`, where `survived = max(next - prev, now - prev, 5 min)`: it follows the time the card
-really stood. A wrong answer writes nothing (the owner's choice): only the percent of the right answer is
+walks the subtree once, `reschedule` writes `next` and `prev` in one transaction. A card has no
+creation time, only `prev` and `next`. The next moment of a right answer is `now + age * growth`, where
+`age = max(now - prev, 5 min)`: it follows the time the card really stood since its last repeat, and the age
+chip shows the same number. A wrong answer writes nothing (the owner's choice): only the percent of the right answer is
 said. The results are chips (`ctx.chips`, green `--ok` for a success, a clock icon for a time); a view that
 has none gets plain text. D12 and D13 still apply: the review log, SM-2 proper and the grades are not part of
 this version.

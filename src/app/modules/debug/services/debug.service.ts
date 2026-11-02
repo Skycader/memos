@@ -176,6 +176,22 @@ export class DebugService {
         `jb: ${jbApplied}, default: ${defaultApplied}`
       );
       check('font: the JetBrains Mono file loads', jbLoaded);
+      const userLine = this.font.line;
+      this.font.setLine(1.6);
+      const lineApplied =
+        document.documentElement.style.getPropertyValue('--line') === '1.6' &&
+        localStorage.getItem('memos.line') === '1.6' &&
+        parseFloat(getComputedStyle(document.querySelector('.terminal') ?? document.body).lineHeight) > 0;
+      this.font.setLine(userLine);
+      check(
+        'font line: the space between lines is applied and remembered; values outside 1-3 and words are refused',
+        lineApplied &&
+          this.font.parseLine('1,5') === 1.5 &&
+          this.font.parseLine('default') === 1.25 &&
+          this.font.parseLine('0.5') === undefined &&
+          this.font.parseLine('4') === undefined &&
+          this.font.parseLine('wide') === undefined
+      );
       check(
         'font: names are found ignoring case',
         this.font.find('jetbrainsmono') === 'JetBrainsMono' && this.font.find('comic') === undefined
@@ -1191,8 +1207,8 @@ export class DebugService {
         const ask = (answers: string[]) => shell.capture('ask AskDir', answers);
 
         check(
-          'ask: an empty directory says there are no cards; a new card keeps when it was born',
-          noCards.out.includes('There are no cards here') && typeof askCard.spec.born === 'number',
+          'ask: an empty directory says there are no cards; a card keeps only prev and next, no birth time',
+          noCards.out.includes('There are no cards here') && !('born' in askCard.spec),
           noCards.out
         );
         const beforeWrong = await cardNow();
@@ -1200,8 +1216,7 @@ export class DebugService {
         const afterWrong = await cardNow();
         check(
           'ask: a wrong answer says how much of the right one matches, hides it, and changes nothing',
-          wrong.out.includes('wrong, 80% of the right answer') &&
-            wrong.out.includes('wrong, ') &&
+          wrong.out.includes('wrong 80% of the right answer') &&
             !wrong.out.includes('chien') &&
             wrong.out.includes('2 wrong') &&
             afterWrong.next === beforeWrong.next &&
@@ -1233,6 +1248,37 @@ export class DebugService {
           'ask: a right answer grows from the time the card really stood: 16 minutes become 32',
           Math.abs(rest(await cardNow()) - 32 * MIN) < 5000,
           String(rest(await cardNow()) / MIN)
+        );
+        /**
+         * the planned rest (next - prev) is 60 minutes, but the card stood 91: the age chip says 91,
+         * and the next rest is twice that, 182, not twice the planned one
+         */
+        await this.core.reschedule(askCard.id, {
+          prev: Date.now() - 91 * MIN,
+          next: Date.now() - 31 * MIN,
+        });
+        const chipAge = await ask(['/exit']);
+        await ask(['chien']);
+        check(
+          'ask: the next rest is twice the age of the card (now - prev), not twice its planned interval',
+          chipAge.out.includes('01:31') && about(rest(await cardNow()), 182 * MIN),
+          `${chipAge.out} / ${rest(await cardNow()) / MIN}`
+        );
+        /** the story: added, 10 minutes, a right answer = 20 minutes; a whole day later = 48 hours */
+        await this.core.reschedule(askCard.id, { prev: Date.now() - 10 * MIN, next: Date.now() - 10 * MIN });
+        await ask(['chien']);
+        const afterTen = rest(await cardNow());
+        const DAY_MS = 24 * 60 * MIN;
+        await this.core.reschedule(askCard.id, {
+          prev: Date.now() - DAY_MS,
+          next: Date.now() - DAY_MS + 20 * MIN,
+        });
+        await ask(['chien']);
+        const afterDay = rest(await cardNow());
+        check(
+          'ask: 10 minutes -> a rest of 20 minutes; a whole day later -> 48 hours, not 40 minutes',
+          about(afterTen, 20 * MIN) && about(afterDay, 2 * DAY_MS),
+          `${afterTen / MIN} min, ${afterDay / MIN} min`
         );
         await due(60 * MIN);
         const helped = await ask(['/tip', 'chien']);
@@ -1270,7 +1316,7 @@ export class DebugService {
           'ask: an unknown /command is an error, /help lists the commands, done leaves, nothing changes',
           strayAsk.err.includes("No such command of the mode") &&
             strayAsk.out.includes("/postpone") &&
-            strayAsk.out.includes("0 right, 0 wrong, 0 moved, 1 left") &&
+            strayAsk.out.includes('Done: 0 right 0 wrong 0 moved 1 left') &&
             unchanged.next === before.next &&
             unchanged.prev === before.prev,
           strayAsk.out + strayAsk.err

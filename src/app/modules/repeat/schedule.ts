@@ -8,7 +8,7 @@
  * and everything else is computed from them:
  * · interval = next - prev   how long the card was meant to rest
  * · need     = how long it has waited past `next`, in units of the expected wait (see needOf)
- * · age      = how long it has lived in the system (see bornOf)
+ * · age      = how long it has stood without a repeat, now - prev (see ageOf)
  */
 
 export const SECOND = 1000;
@@ -37,7 +37,7 @@ export interface Schedule {
 /** the part of a card that tells its sides apart */
 export interface Sided {
   contents: string[];
-  spec: { qfields?: number[]; born?: number };
+  spec: { qfields?: number[] };
 }
 
 /**
@@ -62,11 +62,11 @@ export function needOf(card: Schedule, now: number, growth = GROWTH): number {
 }
 
 /**
- * When the card was made. Cards made before the moment was kept have no `born`: the earlier of
- * their two moments is the best guess left
+ * How long the card has stood without a repeat: from the last one (`prev`) to now. It is the
+ * number on the age chip, and what the next rest is made of (see succeed)
  */
-export function bornOf(card: Schedule & Pick<Sided, 'spec'>): number {
-  return card.spec.born ?? Math.min(card.prev, card.next);
+export function ageOf(card: Schedule, now: number): number {
+  return Math.max(0, now - card.prev);
 }
 
 /**
@@ -125,15 +125,15 @@ export function succeed(now: number, card: Schedule, tip = false): Schedule {
 
 /**
  * A right answer with a given growth: the card is repeated now and comes back after the time it
- * has lived without a repeat, multiplied by the growth. That time is how long the card really
- * stood since the last repeat (now - prev), never less than the rest that was meant for it
- * (next - prev) and never less than MIN_INTERVAL.
+ * stood without a repeat (now - prev, the age chip) multiplied by the growth. Only the two
+ * moments `prev` and `next` are needed; a card that has stood no time at all (one just made or
+ * just repeated) rests MIN_INTERVAL, or it would be due again at once.
  *
- * A card that was not repeated for 16 minutes and is answered now comes back after 32 (growth 2);
- * a card that rested 12 h and is answered after 12 h comes back after 24 h
+ * A card that stood 16 minutes and is answered now comes back after 32 (growth 2); one that
+ * stood 11.5 minutes after 23; one that stood 12 h after 24 h
  */
 function grow(now: number, card: Schedule, growth: number): Schedule {
-  const survived = Math.max(intervalOf(card), now - card.prev, MIN_INTERVAL);
+  const survived = Math.max(ageOf(card, now), MIN_INTERVAL);
   return { prev: now, next: now + Math.round(survived * growth) };
 }
 
@@ -220,6 +220,25 @@ export function similarity(typed: string, expected: string): number {
     }
   }
   return 1 - row[b.length] / longest;
+}
+
+/**
+ * How much of the answer is already typed right, from 0 to 1, for the bar that fills while the
+ * user types: the length of the start that both texts share, over the length of the answer.
+ * `Un` of `Un chat` is 2/7. One wrong letter stops it: what comes after does not count.
+ * Compared as `matches` does (case and extra spaces do not count); spaces before the text are skipped
+ */
+export function progressOf(typed: string, expected: string): number {
+  const plain = (text: string) =>
+    [...text.normalize('NFC').replace(/\s+/g, ' ').toLocaleLowerCase().trimStart()];
+  const a = plain(typed);
+  const b = plain(expected);
+  while (b.at(-1) === ' ') b.pop();
+  if (b.length === 0) return 0;
+
+  let shared = 0;
+  while (shared < a.length && shared < b.length && a[shared] === b[shared]) shared++;
+  return shared / b.length;
 }
 
 /**

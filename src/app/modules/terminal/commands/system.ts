@@ -1,4 +1,4 @@
-import { FONTS } from '../../core/services/font.service';
+import { FONTS, LINE_DEFAULT, LINE_MAX, LINE_MIN } from '../../core/services/font.service';
 import { TerminalCommand } from './command';
 
 /**
@@ -159,18 +159,33 @@ export const theme: TerminalCommand = {
 export const font: TerminalCommand = {
   name: 'font',
   group: 'system',
-  usage: 'font <JetBrainsMono|default>',
-  description: 'switch the terminal font',
-  why: 'Changes the font of the terminal. The choice is remembered.',
+  usage: 'font <JetBrainsMono|default> | font line [1-3|default]',
+  description: 'switch the terminal font, or the space between lines',
+  why: 'Changes the font of the terminal, or with `line` the space between its lines. The choice is remembered.',
   examples: [
     'font JetBrainsMono',
     'font default  # the browser monospace font',
     'font  # shows the current font and the available ones',
+    'font line 1.6  # more air between the lines (from 1 to 3)',
+    'font line default  # the standard space, 1.25',
+    'font line  # shows the current space',
   ],
   run(args, ctx) {
     const name = args.at(0);
     if (name === undefined) {
       ctx.out(`Font: ${ctx.font.current}\nAvailable: ${FONTS.join(', ')}`);
+      return;
+    }
+    if (name.toLowerCase() === 'line') {
+      const value = args.at(1);
+      if (value === undefined) {
+        ctx.out(`Line space: ${ctx.font.line} (from ${LINE_MIN} to ${LINE_MAX}, default ${LINE_DEFAULT})`);
+        return;
+      }
+      const line = ctx.font.parseLine(value);
+      if (line === undefined) throw new Error(`Usage: font line <${LINE_MIN}-${LINE_MAX}|default>`);
+      ctx.font.setLine(line);
+      ctx.out(`Line space: ${line}`);
       return;
     }
     const found = ctx.font.find(name);
@@ -179,7 +194,7 @@ export const font: TerminalCommand = {
     ctx.out(`Font: ${found}`);
   },
   async complete(partial) {
-    return FONTS.filter((name) => name.toLowerCase().startsWith(partial.toLowerCase()));
+    return [...FONTS, 'line'].filter((name) => name.toLowerCase().startsWith(partial.toLowerCase()));
   },
 };
 

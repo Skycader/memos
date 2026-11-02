@@ -13,7 +13,7 @@
 </ng-template>
 
 <!-- a card of the repetition mode: the frame, three rows of chips and text -->
-<ng-template #cardview let-host="host" let-card="card">
+<ng-template #cardview let-host="host" let-card="card" let-progress="progress">
   <div class="seg seg-top"><pre class="line">{{ host }}</pre></div>
   <div class="seg seg-mid">
     <span class="chip chip-field" *ngFor="let side of card.shown">{{ side.name }}</span>
@@ -25,7 +25,10 @@
   </div>
   <div class="seg seg-mid">
     <span class="chip" [class.chip-late]="card.late">{{ card.need }}</span>
-    <span class="chip">{{ card.age }}</span>
+    <span class="chip chip-age" [style.--fill]="progress">
+      <span class="fill" aria-hidden="true"></span>
+      <span class="fill-text">{{ card.age }}</span>
+    </span>
     <span class="chip chip-menu">
       <svg viewBox="0 0 16 16" width="11" height="11" focusable="false" aria-hidden="true">
         <circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5" />
@@ -62,36 +65,44 @@
     </div>
     <!-- an answered card stays as it was shown -->
     <div *ngIf="line.kind === 'card' && line.card as c" class="ask">
-      <ng-container *ngTemplateOutlet="cardview; context: { host: line.host, card: c }"></ng-container>
+      <ng-container *ngTemplateOutlet="cardview; context: { host: line.host, card: c, progress: line.progress }"></ng-container>
       <div class="seg seg-bottom">
         <pre class="line">$ {{ line.text }}</pre>
       </div>
     </div>
-    <!-- a row of chips: a result with its time -->
+    <!-- a row of chips: a result with its time, or the totals -->
     <div *ngIf="line.kind === 'chips'" class="chips-row">
       <span
         *ngFor="let chip of line.chips"
         class="chip"
         [class.chip-ok]="chip.kind === 'ok'"
+        [class.chip-err]="chip.kind === 'err'"
+        [class.chip-warn]="chip.kind === 'warn'"
+        [class.chip-dim]="chip.kind === 'dim'"
         [class.chip-time]="chip.kind === 'time'"
       >
         <svg
-          *ngIf="chip.kind === 'time'"
+          *ngIf="chip.icon ?? (chip.kind === 'time' ? 'clock' : '') as icon"
           viewBox="0 0 16 16"
           width="11"
           height="11"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           focusable="false"
           aria-hidden="true"
+          [ngSwitch]="icon"
         >
-          <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5" />
-          <path
-            d="M8 4.5V8l2.5 1.5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
+          <ng-container *ngSwitchCase="'clock'">
+            <circle cx="8" cy="8" r="6.25" />
+            <path d="M8 4.5V8l2.5 1.5" />
+          </ng-container>
+          <path *ngSwitchCase="'check'" d="M3 8.5l3.2 3.2L13 4.8" />
+          <path *ngSwitchCase="'cross'" d="M4 4l8 8M12 4l-8 8" />
+          <path *ngSwitchCase="'move'" d="M3 8h10M9 4l4 4-4 4" />
+          <path *ngSwitchCase="'left'" d="M3 4h10M3 8h10M3 12h6" />
         </svg>
         {{ chip.text }}
       </span>
@@ -106,7 +117,7 @@
 
   <div class="prompt">
     <ng-container *ngIf="card as c">
-      <ng-container *ngTemplateOutlet="cardview; context: { host: promptHost, card: c }"></ng-container>
+      <ng-container *ngTemplateOutlet="cardview; context: { host: promptHost, card: c, progress: progress }"></ng-container>
       <div class="seg seg-bottom">
         <pre class="line">$ </pre>
         <ng-container *ngTemplateOutlet="field"></ng-container>
