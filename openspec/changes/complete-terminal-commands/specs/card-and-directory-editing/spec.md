@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Terminal commands that change existing data: remove a directory by name, move, copy, rename and edit, so cards and decks no longer have to be deleted and created again to fix them.
+Terminal commands that change existing data: remove a directory by name, move and edit, so cards and decks no longer have to be deleted and created again to fix them.
 
 ## ADDED Requirements
 
@@ -59,24 +59,6 @@ The system SHALL provide `mv <what> <where>` that moves one card or one director
 #### Scenario: Nothing to move or nowhere to go
 - **WHEN** the name is not a card or a directory here, the target does not exist, the thing is already in the target, or the number of words is not two
 - **THEN** the terminal prints an error and nothing moves
-
-### Requirement: Copy
-The system SHALL provide `cp <what> <to>` that copies a card, or a directory with everything inside, into another directory. Every copy MUST get new ids, and copied cards MUST start with fresh learning progress.
-
-#### Scenario: Copy a directory
-- **WHEN** the user runs `cp French Backup` and `Backup` exists
-- **THEN** `Backup` holds a copy of `French` with all its cards and sub-directories, all with new ids, and the original is unchanged
-
-### Requirement: Rename
-The system SHALL provide `rename <what> <new title>` that changes the title of a directory. The same title rules as in `mkdir` apply: unique in its directory, not empty, not `.` or `..`, no `/`.
-
-#### Scenario: Rename
-- **WHEN** the user runs `rename French Francais` and no sibling is titled `Francais`
-- **THEN** `ls` shows the directory as `Francais` with the same id
-
-#### Scenario: Taken title
-- **WHEN** a sibling already has the new title
-- **THEN** the terminal prints an error and the title is not changed
 
 ### Requirement: Edit a card
 The system SHALL provide `edit <id> <N:value...>` that replaces sides of a card, where `N` is the place of the side counted from 1 (a card keeps its sides as a list, not as named keys) and everything after the first colon is the value. Several `N:value` words MAY be given in one command, each place at most once.
@@ -194,7 +176,7 @@ The system SHALL let `edit` take the id of a directory, and then `N:name` words 
 After any command of this capability, `doctor` SHALL report no new orphans, and every directory SHALL still have a unique title among its siblings.
 
 #### Scenario: Doctor after moves
-- **WHEN** `mv`, `cp`, `rename`, `edit` and `rmdir` have run successfully
+- **WHEN** `mv`, `edit` and `rmdir` have run successfully
 - **THEN** `doctor` finds nothing hanging without a parent
 
 ### Requirement: Setting the times of a card by hand

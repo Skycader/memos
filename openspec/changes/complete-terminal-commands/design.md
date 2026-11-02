@@ -37,23 +37,20 @@ done once and `test` stops using `/__test__`. *Alternative:* build `study` first
 of the product. Rejected: without `edit` and kinds a studied card cannot be fixed or hinted.
 
 ### D2. Core first, commands thin
-New operations (`move`, `copy`, `rename`, `editCard`, `tree`, `search`, `count`) are methods of `CoreService`
+New operations (`move`, `editCard`, `tree`, `search`, `count`) are methods of `CoreService`
 backed by small additions to `AddService`, `GetService` and a new `UpdateService`. Commands only parse
-arguments and print. A directory subtree walk is written once in the core and reused by `tree`, `du`,
-`cp` and `find`. *Alternative:* query Dexie from the commands. Rejected: it breaks the layer rule of the repo.
+arguments and print. A directory subtree walk is written once in the core and reused by `tree`, `du`
+and `find`. *Alternative:* query Dexie from the commands. Rejected: it breaks the layer rule of the repo.
 
 ### D3. Names and ids in one resolver
-`rmdir <name>`, `mv`, `cp`, `rename` and `cd` all accept a title or an id with the title winning.
+`rmdir <name>`, `mv` and `cd` all accept a title or an id with the title winning.
 `TerminalService.resolve` already does it for paths, so that rule keeps a single home there. A card is
 addressed by id only (titles do not exist for cards).
 
-### D4. `mv` and `cp` rules
+### D4. `mv` rules (there is no `cp`: cards are flashcards, not files)
 - `mv` keeps ids; it checks the target exists, the title is free there, the target is not inside the
   moved directory, and a card never goes to `/`. It is one Dexie transaction.
-- `cp` of a directory walks the subtree and gives **every** copy a new id (`freeId`), inside one transaction,
-  and copied cards get fresh progress (`next`/`prev` reset, `spec.status` cleared) because the review
-  history of the original is not theirs.
-- Both get a `doctor`-style check in `test`: no orphans, titles unique.
+- It gets a `doctor`-style check in `test`: no orphans, titles unique.
 
 ### D5. Field kinds: structure, not glued strings
 `Directory.fields` becomes `Field[]` with `{ name, kind: 'normal' | 'ro' | 'tip', for?: string }`.
@@ -96,12 +93,12 @@ session through `ctx.startSession(...)`. Tab completion and history keep working
 *Alternative:* have `study` print everything at once. Rejected: grading needs a loop. *Alternative:* a modal
 dialog outside the terminal. Rejected: the author wants everything in the terminal.
 
-### D11. `history`, `alias`, `exit` need small context additions
-`history` and `exit` need the view, so `CommandContext` gets `history(): string[]` and `exit()`, implemented
-by the shell through callbacks the view registers (the shell does not know the view). Aliases are stored in
-`localStorage` (`memos.aliases`) as a map; `ShellService.run` expands the first word before the registry
-lookup, once (no recursion, so no loops), and refuses names that are real commands. `man` is the
-`aliases: ['man']` field of `help`, which the registry already supports.
+### D11. A virtual clock instead of shell utilities
+`echo`, `history`, `whoami`, `exit`, `alias` and `unalias` are not built (the owner's choice: they add nothing to
+a flashcard terminal). `man` is the `aliases: ['man']` field of `help`, which the registry already supports.
+`set date` needs one clock: a small `ClockService` holds an offset (virtual minus real time, in memory only,
+never stored, so a reload forgets it) and everything that reads `Date.now()` for a card (`ask`, the age and
+the offsets of `edit next:/prev:`, `touch`) reads `clock.now()` instead.
 
 ### D12. The scheduler is a pure module
 `repeat/schedule.ts` exports `schedule(state, grade, now, { tipsUsed }, options)` with no imports from Angular
@@ -171,8 +168,6 @@ written first and refuse the whole command when one is wrong, then the times. A 
   filled by the previous version; old `version(n)` blocks are never edited; the docs say to `export` first.
 - **[Swapping the database touches every service]** (D8) → done in one small step, with the constant kept as a
   thin wrapper until all services have moved; `test` runs before and after.
-- **[`cp` of a big directory is slow or fills storage]** → one transaction, the count printed first for more
-  than a few hundred cards, quota errors reported as an ordinary error.
 - **[An interactive session breaks Tab, history or the queue]** (D10) → the typed-ahead queue is paused while a
   session is active; `test` covers entering, leaving and the first command after leaving.
 - **[Scope is large for one change]** → stages are independent; tasks.md marks the stage boundaries and the

@@ -292,6 +292,42 @@ export class CoreService {
   }
 
   /**
+   * Directories with the given title or id, anywhere in the database
+   */
+  public async dirsNamed(name: string): Promise<Directory[]> {
+    return await this.db.get.dirsNamed(name);
+  }
+
+  /**
+   * The cards that have the text in one of their sides (case does not matter, a part is enough),
+   * looked for in the given directories and everything under them. A card is listed once even if
+   * the directories overlap. Ordered by path, each card with the directory it lies in, its path and the path with icons
+   */
+  public async search(
+    text: string,
+    scopes: string[]
+  ): Promise<{ card: Card; dir: Directory; path: string; shown: string }[]> {
+    const needle = text.toLowerCase();
+    const seen = new Set<string>();
+    const paths = new Map<string, { path: string; shown: string }>();
+    const found: { card: Card; dir: Directory; path: string; shown: string }[] = [];
+    for (const scope of scopes) {
+      for (const { card, dir } of await this.cardsUnder(scope)) {
+        if (seen.has(card.id)) continue;
+        seen.add(card.id);
+        if (!card.contents.some((side) => String(side).toLowerCase().includes(needle))) continue;
+        let named = paths.get(dir.id);
+        if (named === undefined) {
+          named = { path: await this.pathOf(dir.id), shown: await this.pathOf(dir.id, true) };
+          paths.set(dir.id, named);
+        }
+        found.push({ card, dir, ...named });
+      }
+    }
+    return found.sort((a, b) => a.path.localeCompare(b.path));
+  }
+
+  /**
    * One card by id, undefined if there is none
    */
   public async card(id: string): Promise<Card | undefined> {
@@ -317,14 +353,16 @@ export class CoreService {
   }
 
   /**
-   * The path of a directory from the root, as pwd prints it: `/French/Verbs`; `/` for the root
+   * The path of a directory from the root, as pwd prints it: `/French/Verbs`; `/` for the root.
+   * With `withIcons` each part carries its icon, as `ls` shows a directory
    */
-  public async pathOf(id: string): Promise<string> {
+  public async pathOf(id: string, withIcons = false): Promise<string> {
     const titles: string[] = [];
     for (let at = id, steps = 0; at !== '/' && steps < 100000; steps++) {
       const dir = (await this.db.get.dirById(at))[0];
       if (!dir) break;
-      titles.unshift(dir.title);
+      /** with icons every part has its own, right before its title: `/🌎 Languages/🇫🇷 French` */
+      titles.unshift(withIcons && dir.icon ? `${dir.icon} ${dir.title}` : dir.title);
       at = dir.owner;
     }
     return '/' + titles.join('/');

@@ -152,6 +152,18 @@ Units are `s`, `m`, `h`, `d` (`2h`, `-1d`, `90s`); a bare number is minutes. The
 together with sides: `edit Lzad 2:chien next:now`. The report shows the old and the new time as
 `yyyy-mm-dd hh:mm:ss`. Everything is checked first: a wrong side or time changes nothing.
 
+## Search (`find`)
+
+`find [-c <directory>]... <text>` looks for the text in the sides of the cards, ignoring case; a part of
+a side is enough. The words after the options are one text, so ``find Un chat`` is ``find `Un chat` ``.
+Each card is printed under the full path of its directory, every part with its own icon (`/🌎 Languages/🇫🇷 French`), with the number of cards at the end.
+
+- `find Un chat`: the current directory and everything under it.
+- `find -c French Un chat`: only in the directories titled `French` (all of them, wherever they are).
+- `find -c aB3x Un chat` / `find -c /French/Verbs Un chat`: by id or by path.
+- `-c` can be repeated: `find -c French -c Spanish chat`.
+- Nothing found prints `Nothing found`, which is not an error. `find` never changes data.
+
 ## Keys
 
 ↑ / ↓ history, Ctrl+L clears the screen.

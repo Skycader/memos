@@ -7,7 +7,7 @@ A complete, restorable backup of everything the app holds, and a setting for how
 ## ADDED Requirements
 
 ### Requirement: Full backup
-The system SHALL provide `backup` that downloads one JSON file with the whole current database: directories, cards with their learning state, the review log and the settings (theme, font, aliases, style). The file name SHALL carry the database name and the date.
+The system SHALL provide `backup` that downloads one JSON file with the whole current database: directories, cards with their learning state, the review log and the settings (theme, font, line space, style). The file name SHALL carry the database name and the date.
 
 #### Scenario: Download
 - **WHEN** the user runs `backup`

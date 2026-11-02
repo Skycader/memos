@@ -38,6 +38,16 @@ export class GetService {
     return await db.directory.where({ owner, title }).first();
   }
 
+  /**
+   * Every directory, anywhere, whose title or whose id is the name (titles are only unique
+   * inside one directory, so there can be several)
+   */
+  async dirsNamed(name: string): Promise<Directory[]> {
+    const byTitle = await db.directory.where('title').equals(name).toArray();
+    const byId = await db.directory.get(name as any);
+    return byId && !byTitle.some((dir) => dir.id === byId.id) ? [...byTitle, byId] : byTitle;
+  }
+
   /** ids of all the cards of a directory */
   async cardIdsByOwner(owner: string): Promise<string[]> {
     return (await db.card.where({ owner }).primaryKeys()) as unknown as string[];

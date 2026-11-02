@@ -24,7 +24,7 @@ a **terminal in the browser**. Angular 17 + Dexie (IndexedDB), no backend, no ex
 - Two things: **directories** (decks, they nest, like a file system) and **cards** (live in
   directories; they have named fields called sides: `original`, `transcription`, `translation`...).
   Details and the planned field kinds (read-only, tip) are in [domain.md](domain.md).
-- You work with it by typing commands: `cd`, `ls`, `mkdir`, `touch`, `edit`, `rm`, `rmdir`, `export`,
+- You work with it by typing commands: `cd`, `ls`, `mkdir`, `touch`, `edit`, `find`, `rm`, `rmdir`, `export`,
   `import`, `seed`, `test`, `doctor`, `theme`, `font`, `help`... Type `help` for the current list,
   `help <command>` for one command. The list is generated from the code, it is not written here.
 - **Not built yet:** the repetition itself. There is no `study` command and no scheduler; cards only

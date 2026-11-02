@@ -986,6 +986,80 @@ export class DebugService {
           mvNone.err + mvNowhere.err + mvArgs.err
         );
 
+        /**
+         * find [-c <dir>]... <text>: cards whose side holds the text, with the full path of their
+         * directory. FindA and FindB hold one cat card each; FindB lies deeper, in FindA/FindDeep
+         */
+        await run('mkdir FindA Q A');
+        await run('mkdir FindOther Q A');
+        const findA = await dirIn(qoDir, 'FindA');
+        const findOther = await dirIn(qoDir, 'FindOther');
+        await this.core.touch(['A cat', 'Un chat'], findA);
+        await this.core.touch(['A dog', 'Un chien'], findA);
+        await this.core.touch(['A cat too', 'Un chat aussi'], findOther);
+        await run('cd FindA');
+        await run('mkdir FindDeep Q A');
+        const findDeep = await dirIn(findA, 'FindDeep');
+        await this.core.touch(['Cat deep', 'UN CHAT profond'], findDeep);
+        await run('cd ..');
+
+        const findWords = await run('find un chat');
+        const findQuoted = await run('find `un chat`');
+        check(
+          'find: words are one text, the case does not matter, cards come with the full path of their directory',
+          findWords.err === '' &&
+            findWords.out === findQuoted.out &&
+            findWords.out.includes('/FindA\n') &&
+            findWords.out.includes('/FindA/FindDeep\n') &&
+            findWords.out.includes('[A cat,Un chat]') &&
+            findWords.out.includes('[Cat deep,UN CHAT profond]') &&
+            !findWords.out.includes('Un chien') &&
+            findWords.out.includes('Found 3 cards'),
+          findWords.out + findWords.err
+        );
+        const findOne = await run('find -c FindA Un chat');
+        const findById = await run(`find -c ${findA} Un chat`);
+        const findQuotedText = await run('find -c FindA `Un chat`');
+        const findPath = await run(`find -c FindA/FindDeep Un chat`);
+        check(
+          'find -c: only in the named directory (and below it), by title, by id or by path, with or without quotes',
+          findOne.out.includes('Found 2 cards') &&
+            !findOne.out.includes('too') &&
+            findById.out === findOne.out &&
+            findQuotedText.out === findOne.out &&
+            findPath.out.includes('Found 1 card') &&
+            !findPath.out.includes('[A cat,Un chat]'),
+          findOne.out + findPath.out
+        );
+        await run('edit FindA icon:🐱');
+        await run('cd FindA');
+        await run('edit FindDeep icon:🐶');
+        await run('cd ..');
+        const findIcon = await run('find -c FindA Un chat');
+        check(
+          'find: every part of the path has its own icon right before its title (/🌎 Languages/🇫🇷 French); a directory without an icon has none',
+          findIcon.out.includes('/🐱 FindA\n') &&
+            findIcon.out.includes('/🐱 FindA/🐶 FindDeep\n') &&
+            !findIcon.out.includes('🐱 /') &&
+            findIcon.out.includes('/QuestionOnly/'),
+          findIcon.out
+        );
+        const findTwo = await run('find -c FindDeep -c FindOther chat');
+        const findNone = await run('find zzzqq');
+        const findNoDir = await run('find -c Nowhere chat');
+        const findNoText = await run('find');
+        const findNoName = await run('find -c FindA');
+        check(
+          'find: several -c add up, no match is said and is not an error, a missing directory or text is an error',
+          findTwo.out.includes('Found 2 cards') &&
+            findNone.out === 'Nothing found' &&
+            findNone.err === '' &&
+            findNoDir.err.includes('There is no directory') &&
+            findNoText.err.includes('Usage: find') &&
+            findNoName.err.includes('Usage: find'),
+          findTwo.out + findNone.out + findNoDir.err
+        );
+
         /** to the root and back by id: the target may be the id of a directory, wherever it is */
         const mvToRoot = await run('mv MvB /');
         const rootNow = await ownerOfDir(mvB);

@@ -80,7 +80,7 @@ comes with a check in `test`.
 - Directions: `original -> translation` and back as separate states of one card
   (`spec.status` already has room for it).
 - Daily limits, leeches (cards that are always forgotten), `maxInterval`.
-- Search and organisation: `find`, tags, `mv`, `cp`.
+- Search and organisation: ~~`find`~~ (done: `find [-c <directory>] <text>`), ~~`mv`~~ (done), tags. No `cp`: cards are flashcards, not files.
 
 ## 4. Safety of data
 

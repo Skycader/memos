@@ -7,16 +7,16 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 ## 1. Stage 1a: core operations (no schema change)
 
 - [x] 1.1a Add `UpdateService` (`cardContents`, `moveDirectory`, `moveCard`, `directoryWithCards`: replace card contents, move owner, rename a directory with its sides and cards in one transaction); verified by Karma specs and in-app `test` checks calling them through the commands
-- [ ] 1.1b Add `GetService` helpers still missing: subtree walk, search by text, counts (needed by `tree`, `find`, `grep`, `wc`, `du`, `cp`)
+- [x] 1.1b `GetService.dirsNamed` (every directory with a title or an id, anywhere) and `cardsUnder` (the subtree walk); `tree`, `wc` and `du` will reuse the walk. Not built, by the owner's decision: `copy`
 - [x] 1.2a Add `CoreService.editCard`, `editDirectory` (title, icon and sides), `moveDir`, `moveCard`, `dir`, `pathOf`, `checkTitle` (one transaction each); verified by `test`: move keeps ids, move into itself is refused
-- [ ] 1.2b Add `CoreService.tree`, `search`, `count`, `copy` (new ids on copy, fresh progress on copied cards); verify with `test` checks. `renameDir` is covered by `editDirectory` with `name:`
+- [x] 1.2b `CoreService.search(text, scopes)` and `dirsNamed`: cards by a part of a side, case ignored, with their directory and full path, ordered by path; verified by `test`. Dropped by the owner: `copy` (cards are flashcards, not files) and `rename` (`edit <dir> name:X` does it). `tree` and `count` come with their commands
 - [x] 1.3 Make `rmdir` accept a title as well as an id (title wins, as in `cd`); verify by `test` (by title, by id, unknown) and by `help rmdir` showing the new usage
 - [x] 1.4 Remove `rmdir <dir name>` from `PLANNED` in `commands/system.ts` and from the `help` check in `debug.service.ts`; verify the `help ends with the Planned list` check is updated and green
 
 ## 2. Stage 1b: inspection commands
 
-- [ ] 2.1 Add `commands/inspect.ts` with `cat`, `tree`, `find`, `grep`, `wc`, `du` (each with `why`, `examples`, `complete` where ids or paths apply); verify via `shell.capture` checks for output, errors and "database unchanged"
-- [ ] 2.2 Register them in `commands/index.ts` and add the help group entry if a new group is used; verify `help` lists them and the registry checks of `test` pass
+- [ ] 2.1 `commands/inspect.ts`: `find [-c <directory>]... <text>` is DONE (words are one text, `-c` by title, id or path, repeatable, the full path of the directory is printed with the icon of every part, `/🌎 Languages/🇫🇷 French`, then the cards; `Nothing found` is not an error; `parseFind` has Karma specs, 4 checks in `test`, 170/170 in the app, Karma 96/96). Dropped by the owner: `cat` (`ls` shows every field) and `grep` (`find` covers it). Still to do: `tree`, `wc`, `du`
+- [ ] 2.2 `find` is registered in `commands/index.ts` (group navigation) and listed by `help`; still to do: register `tree`, `wc`, `du` and check `help` lists them
 - [ ] 2.3 Update `docs/terminal.md` (commands list), `docs/testing.md` (what `test` covers) and `docs/welcome.md` (command names); verify each documented example runs as written
 
 ## 3. Stage 1c: editing commands
@@ -28,18 +28,18 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 - [x] 3.4 Add `mv <what> <where>`: a directory by title or id, a card by id; the target is a path as in `cd` or a directory id; `/` for directories only; one thing per command; warning when a card's sides do not fit (`UpdateService.moveDirectory` / `moveCard`, `CoreService.moveDir` / `moveCard`, `sidesWarning`); verified by 4 Karma specs and 10 in-app `test` checks for the "Move" scenarios of `specs/card-and-directory-editing/spec.md`
 - [x] 3.4a Make `mkdir <title> [sides...]` take no icon (stored as `''`, `ls` lists it without a gap) and let `edit <dir> icon:X name:X N:name...` change the icon and the title of a directory by its title or id, in the same transaction as the sides (`parseDirectoryEdits`, `CoreService.checkTitle`); verified by 4 Karma specs and 7 in-app `test` checks for the "Directory without an icon" scenarios
 - [x] 3.4c Make `edit <card id> next:X prev:X` (now, 1m, -1m, +2h; counted from now; with sides in one command; nothing changes if one word is wrong; refused for a directory); verified by Karma (`parseCardEdits`, `parseOffset`) and 5 checks in `test`
-- [ ] 3.4b Make `cp <what> <where>` and `rename <what> <new title>` (the "Copy" and "Rename" scenarios); `rename` is now also `edit <dir> name:X`, decide whether `rename` stays as a short form
-- [ ] 3.5 Make `doctor` part of the checks after move/copy/rename/edit/rmdir; verify "no new orphans" is asserted in `test`
+- [x] 3.4b Dropped by the owner: `cp` (cards are flashcards, not files to copy) and `rename` (`edit <dir> name:X` is the way)
+- [ ] 3.5 Make `doctor` part of the checks after move/edit/rmdir; verify "no new orphans" is asserted in `test`
 - [ ] 3.6 Document the commands in `docs/terminal.md` and the id/title rule in `docs/architecture.md` (`docs/domain.md` and `docs/welcome.md` already cover `edit` and `drop`); verify the examples run as written
 - [ ] 3.7 Cover a confirmed `drop` in `test` once a scratch database exists (task 7.5); until then only its refusals are tested, because a confirmed one would erase the user's real data
 
 ## 4. Stage 1d: shell utilities
 
-- [ ] 4.1 Add `echo`, `date`, `whoami` (returns `memos` until stage 3) in `commands/shell.ts`; verify via `shell.capture`
-- [ ] 4.2 Add `history` and `exit` through callbacks the view registers on `ShellService` (`CommandContext.history`, `CommandContext.exit`); verify the numbered output, and that `exit` clears the screen and the next command still runs
-- [ ] 4.3 Add `alias`, `unalias` with `localStorage` storage (`memos.aliases`), single-level expansion in `ShellService.run`, refusal of real command names; verify: define and use, reserved name, survives a reload
+- [ ] 4.1 Add `set date <dd.mm.yyyy> [hh:mm]`: a virtual time kept in memory only (a `ClockService` offset, never stored, a reload forgets it), read by `ask`, the ages and `edit next:/prev:` instead of `Date.now()`; `set date` shows it, `set date real` returns to real time; a wrong date prints the usage; verify by `test` checks and Karma for the parser
+- [x] 4.2 Dropped by the owner: `history` and `exit`
+- [x] 4.3 Dropped by the owner: `alias` and `unalias`
 - [ ] 4.4 Add `aliases: ['man']` to `help`; verify `man cd` equals `help cd`
-- [ ] 4.5 Update docs (`terminal.md`, `welcome.md`) and the Karma spec of `TerminalComponent` if the view changed; verify `npx ng test --watch=false --browsers=ChromeHeadless` is green
+- [ ] 4.5 Update docs (`terminal.md`, `welcome.md`) for `set date` and `man`; verify Karma and the in-app `test` are green
 
 ## 5. Stage 2a: field kinds in the data
 
@@ -61,7 +61,7 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 
 - [ ] 7.1 Add `DbProvider` holding the current `AppDB` and its name in `localStorage` (`memos.db`); move `AddService`, `GetService`, `RemoveService`, `wipe` to it; verify the whole `test` suite is unchanged and green
 - [ ] 7.2 Add `commands/db.ts` with `db`, `db ls`, `db use`, `db drop` (current and last database refused as two separate checks); verify every scenario of `specs/multi-database/spec.md` on scratch databases
-- [ ] 7.3 Reset the terminal path on `db use`, make `whoami` return the current database; verify `pwd` after a switch
+- [ ] 7.3 Reset the terminal path on `db use`, verify `pwd` after a switch
 - [ ] 7.4 Reword `drop` in `help` as "wipe the current database"; verify `help drop` and that `drop` still leaves the database open and usable
 - [ ] 7.5 Move `test` onto a scratch database (`memos-test-<time>`), clean it in `finally`, retire `/__test__`; verify real data is untouched after `test`, also when a check throws
 - [ ] 7.6 Update `docs/architecture.md`, `docs/testing.md`, `docs/roadmap.md` (remove the parked `db` note) and `docs/welcome.md`; verify they match the code
@@ -94,14 +94,14 @@ Stages follow the proposal and are ordered by dependency. Every group lands its 
 - [x] 11.0 `font line <1-3|default>` (done early, with the font): the space between the lines of the terminal (`line-height` through `--line`), kept in `localStorage` (`memos.line`), `1,5` works as `1.5`, Tab completes `line`, bare `font line` shows the value; `FontService.setLine`/`parseLine`; verified by a `test` check (166/166) and `docs/terminal.md`. Not yet looked at on screen
 
 - [ ] 11.1 Add `StyleService` and the `style emoji|plain` command (bare shows current and available, wrong value shows usage, Tab completes), and make `ls` read it with aligned columns; verify default look is unchanged and both looks in `test`
-- [ ] 11.2 Include aliases and style in the backup settings and restore them; verify a round trip
+- [ ] 11.2 Include the style (and the font line space) in the backup settings and restore them; verify a round trip
 - [ ] 11.3 Write the "pipes and plugins" idea into `docs/roadmap.md` as deferred with what the registry already offers; verify the roadmap names them as not built
 
 ## 12. Final integration
 
 - [ ] 12.1 Run the full in-app `test` and confirm no check fails and none was removed without a replacement; verify the count in the summary line
 - [ ] 12.2 Run `npx tsc -p tsconfig.app.json --noEmit`, `npx ng build` and the Karma suite headless; verify all three succeed
-- [ ] 12.3 Walk through the whole flow in the browser once on seed data (`seed`, `tree`, `mv`, `cp`, `edit`, `find`, `db use`, `study`, `backup`, `restore`); verify and report what was checked and what was not
+- [ ] 12.3 Walk through the whole flow in the browser once on seed data (`seed`, `tree`, `mv`, `edit`, `find`, `db use`, `study`, `backup`, `restore`); verify and report what was checked and what was not
 - [ ] 12.4 Re-read `help`, `docs/` and `openspec/changes/complete-terminal-commands/specs/` and confirm every command in them exists; verify there is no command documented but missing, and no `PLANNED` line left that works
 
 ## Workflow follow-up
